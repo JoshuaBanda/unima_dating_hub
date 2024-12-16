@@ -4,6 +4,8 @@ import 'home/landingpage.dart';
 import 'user_verification/Login_SignUp.dart';
 import 'home/home.dart';
 import 'posts/post_list.dart';
+import 'users/user_characteristics/user_characteristics_page.dart';
+import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,12 +16,13 @@ void main() async {
   String? token = await storage.read(key: 'jwt_token');
   String? email = await storage.read(key: 'email');
   String? userId = await storage.read(key: 'userid');
-  
+
   // For now, we use hardcoded values for firstName, lastName, profilePicture, and activationStatus
   String firstName = 'John'; // Example, you can replace this with real data
-  String lastName = 'Doe';   // Example, replace with actual data
+  String lastName = 'Doe'; // Example, replace with actual data
   String profilePicture = ''; // You may need to fetch this from storage or API
-  bool activationStatus = true; // This should be retrieved from your API or storage
+  bool activationStatus =
+      true; // This should be retrieved from your API or storage
 
   // If a valid token exists, navigate directly to the home page
   runApp(MyApp(
@@ -43,10 +46,10 @@ class MyApp extends StatelessWidget {
   final bool activationStatus;
 
   const MyApp({
-    super.key, 
-    required this.isLoggedIn, 
-    this.userEmail, 
-    this.userId, 
+    super.key,
+    required this.isLoggedIn,
+    this.userEmail,
+    this.userId,
     required this.firstName,
     required this.lastName,
     required this.profilePicture,
@@ -57,15 +60,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: isLoggedIn ? '/home' : '/landingpage',
+      initialRoute: '/cr',
       routes: {
-        '/home': (context) => FarmSmartScreen(
-        ),
+        '/home': (context) => FarmSmartScreen(),
         '/login': (context) => const LoginPage(),
-        
         '/landingpage': (context) => const LandingPage(),
+        '/land': (context) =>
+            PostListPage(currentUserId: 1, currentEmail: 'bsc'),
         
-        '/land': (context) => PostListPage(currentUserId: 1, currentEmail: 'bsc'),
+        '/cr': (context) => UserCharacteristicsPage(userId: '1'),
+        
+        '/cr2': (context) => UpdateFieldPage(userId: '1'),
       },
     );
   }
