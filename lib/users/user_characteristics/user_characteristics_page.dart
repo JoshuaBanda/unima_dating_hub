@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '/home/home.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class UserCharacteristicsPage extends StatefulWidget {
   final String userId;  // Added userId as a parameter to the constructor
@@ -37,6 +39,9 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
   String? _programOfStudy;
   bool _isOtherLocation = false;
 
+  // Flag for loading state
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _dobController.dispose();
@@ -54,6 +59,10 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
   Future<void> _sendDataToBackend(Map<String, dynamic> userCharacteristics) async {
     const String apiUrl = 'https://datehubbackend.onrender.com/user-characteristics/create'; // Replace with your backend API URL
 
+    setState(() {
+      _isLoading = true;  // Show loading indicator
+    });
+
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -63,18 +72,32 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
         body: json.encode(userCharacteristics),
       );
 
-      if (response.statusCode == 200||response.statusCode == 201) {
+      setState(() {
+        _isLoading = false;  // Hide loading indicator
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         // Successfully sent data
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User Characteristics saved successfully!')),
+          SnackBar(content: Text('Characteristics saved successfully!')),
         );
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FarmSmartScreen()
+            ),
+          );
       } else {
         // Handle error
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save data: ${response.statusCode}')),
+          SnackBar(content: Text('Failed to save data')),
         );
       }
     } catch (e) {
+      setState(() {
+        _isLoading = false;  // Hide loading indicator
+      });
+
       // Handle error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -114,7 +137,8 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
     if (picked != null && picked != _dob) {
       setState(() {
         _dob = picked;
-        _dobController.text = DateFormat('yyyy-MM-dd').format(_dob!);
+        // Format date as "dd MMMM yyyy" (e.g., 17 December 2024)
+        _dobController.text = DateFormat('dd MMMM yyyy').format(_dob!);
       });
     }
   }
@@ -123,17 +147,16 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255), // Set AppBar color to red
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         title: Text(
-          "UNIMA DATES",  // Text to display
-          style: GoogleFonts.dancingScript(
+          "UNIMA DATES",
+          style: GoogleFonts.raleway(
             textStyle: TextStyle(
               foreground: Paint()
                 ..shader = LinearGradient(
                   colors: [const Color.fromARGB(255, 253, 107, 102), Colors.orange],
                 ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
-              fontStyle: FontStyle.italic, // Italic font style
-              fontSize: 32,  // Font size set to 32
+              fontSize: 25,
             ),
           ),
         ),
@@ -187,7 +210,6 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                     items: [
                       DropdownMenuItem(child: Text("Male"), value: "Male"),
                       DropdownMenuItem(child: Text("Female"), value: "Female"),
-                      DropdownMenuItem(child: Text("Other"), value: "Other"),
                     ],
                     decoration: InputDecoration(
                       labelText: 'Sex',
@@ -209,34 +231,40 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                   ),
                 ),
 
-                // Height
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: TextFormField(
-                    controller: _heightController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Height (cm)',
-                      filled: true,
-                      fillColor: Colors.white,
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.orange),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
+                // Height (Dropdown)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: DropdownButtonFormField<String>(
+                  value: _heightController.text.isNotEmpty ? _heightController.text : null,
+                  onChanged: (value) {
+                    setState(() {
+                      _heightController.text = value ?? '';
+                    });
+                  },
+                  items: [
+                    DropdownMenuItem(child: Text("Short (100 cm)"), value: "100"),
+                    DropdownMenuItem(child: Text("Medium (150 cm)"), value: "150"),
+                    DropdownMenuItem(child: Text("Tall (200 cm)"), value: "200"),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Height',
+                    filled: true,
+                    fillColor: Colors.white,
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.orange),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your height';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'Height must be a valid number';
-                      }
-                      return null;
-                    },
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red),
+                    ),
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select your height';
+                    }
+                    return null;
+                  },
                 ),
+              ),
 
                 // Skin Color (Dropdown)
                 Padding(
@@ -252,7 +280,6 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                       DropdownMenuItem(child: Text("Light"), value: "Light"),
                       DropdownMenuItem(child: Text("Medium"), value: "Medium"),
                       DropdownMenuItem(child: Text("Dark"), value: "Dark"),
-                      DropdownMenuItem(child: Text("Other"), value: "Other"),
                     ],
                     decoration: InputDecoration(
                       labelText: 'Skin Color',
@@ -310,50 +337,59 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                   ),
                 ),
 
-                // Location (Campus, Chikand, Others)
+                // Location (Campus, Chikanda)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
-                  child: DropdownButtonFormField<String>(
-                    value: _location,
-                    onChanged: (value) {
-                      setState(() {
-                        _location = value;
-                        _isOtherLocation = value == 'Others'; // If 'Others' is selected
-                      });
-                    },
-                    items: [
-                      DropdownMenuItem(child: Text("Campus"), value: "Campus"),
-                      DropdownMenuItem(child: Text("Chikand"), value: "Chikand"),
-                      DropdownMenuItem(child: Text("Others"), value: "Others"),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _location,
+                          onChanged: (value) {
+                            setState(() {
+                              _location = value;
+                              if (_location == 'Other') {
+                                _isOtherLocation = true;
+                              } else {
+                                _isOtherLocation = false;
+                              }
+                            });
+                          },
+                          items: [
+                            DropdownMenuItem(child: Text("Campus"), value: "Campus"),
+                            DropdownMenuItem(child: Text("Chikanda"), value: "Chikanda"),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Location',
+                            filled: true,
+                            fillColor: Colors.white,
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.orange),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select a location';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ],
-                    decoration: InputDecoration(
-                      labelText: 'Location',
-                      filled: true,
-                      fillColor: Colors.white,
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.orange),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select your location';
-                      }
-                      return null;
-                    },
                   ),
                 ),
 
-                // Custom input for Location if 'Others' is selected
+                // Other Location (if "Other" is selected)
                 if (_isOtherLocation)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: TextFormField(
                       controller: _locationController,
                       decoration: InputDecoration(
-                        labelText: 'Enter Location (If Others)',
+                        labelText: 'Enter Other Location',
                         filled: true,
                         fillColor: Colors.white,
                         focusedBorder: OutlineInputBorder(
@@ -365,7 +401,7 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a location if you selected Others';
+                          return 'Please specify the other location';
                         }
                         return null;
                       },
@@ -461,7 +497,6 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                       DropdownMenuItem(child: Text("Year 2"), value: "2"),
                       DropdownMenuItem(child: Text("Year 3"), value: "3"),
                       DropdownMenuItem(child: Text("Year 4"), value: "4"),
-                      DropdownMenuItem(child: Text("Year 5"), value: "5"),
                     ],
                     decoration: InputDecoration(
                       labelText: 'Year of Study',
@@ -485,16 +520,20 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
 
                 // Submit Button
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton(
-                    onPressed: _submitForm,
-                    child: Text('Submit',
-                  style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      iconColor: Colors.white,
-                    ),
-                  ),
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: _isLoading
+                      ? const SpinKitFadingCircle(color: Colors.grey, size: 50.0)
+                      : ElevatedButton(
+                          onPressed: _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+                            backgroundColor: const Color.fromARGB(255, 255, 60, 0),
+                          ),
+                          child: Text(
+                            'Submit',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
                 ),
               ],
             ),

@@ -109,6 +109,7 @@
           'createdat': DateTime.now().toString(),
           'userid': widget.myUserId,
           'messageId': messageId, // Add unique ID
+          'status':'pending'
         };
         currentMessages.add(message); // Add the new message at the bottom
         sendingStatus[messageId] = false; // Initially mark the message as not sent
@@ -163,11 +164,11 @@
     }
 
     // Format the time in a 12-hour format (e.g., 12:30 PM)
-    String _formatTime(String dateString) {
-      if (dateString.isEmpty) return ''; // Avoid null or empty date errors
-      final date = DateTime.parse(dateString);
-      return DateFormat('hh:mm a').format(date); // Format to '12:30 PM'
-    }
+String _formatTime(String dateString) {
+  if (dateString.isEmpty) return ''; // Avoid null or empty date errors
+  final date = DateTime.parse(dateString).add(Duration(hours: 2)); // Add 2 hours
+  return DateFormat('hh:mm a').format(date); // Format to '12:30 PM'
+}
 
     // Group messages by date and insert date header for each new group
     Map<String, List<dynamic>> _groupMessagesByDate(List<dynamic> messages) {

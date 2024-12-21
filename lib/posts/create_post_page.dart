@@ -47,7 +47,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
         isLoading = true; // Start loading
       });
 
-      final description = _descriptionController.text;
+      // Get the description (use whitespace if empty)
+      final description = _descriptionController.text.isEmpty ? ' ' : _descriptionController.text;
       final photoPath = _selectedImage!.path;
 
       // Print userId for debugging
@@ -59,7 +60,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
       // Add user_id and description field (case-sensitive)
       request.fields['user_id'] = widget.userId; // Pass user_id here (case-sensitive)
-      request.fields['description'] = description;
+      request.fields['description'] = description; // Pass description (whitespace if empty)
 
       // Add image file with correct content type
       var imageFile = await http.MultipartFile.fromPath(
@@ -152,10 +153,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Description is required';
-                  }
-                  return null;
+                  // Remove the validation that forces the description to be required
+                  return null;  // No validation required for the description
                 },
               ),
               const SizedBox(height: 16),
@@ -190,7 +189,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                       height: 50,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.red, Colors.orange],  // Gradient colors
+                          colors:const [Colors.red, Colors.orange],  // Gradient colors
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),

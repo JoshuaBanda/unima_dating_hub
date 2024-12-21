@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // Import cached_network_image package
-import 'comments/comments.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:intl/intl.dart'; // Import for date formatting
 import 'post/post.dart';
 import 'comment_dialog.dart';
+import 'package:unima_dating_hub/chats/full_screen_image_page.dart';
+import 'package:unima_dating_hub/chats/profile_page.dart';
+import 'report_page.dart';
+import 'post_photo_full_page.dart';
 
 class PostItem extends StatefulWidget {
   final Post post;
   final int currentUserId;
   final String currentEmail;
+  final String jwtToken;
 
   PostItem({
     required this.post,
     required this.currentUserId,
     required this.currentEmail,
+    required this.jwtToken,
   });
 
   @override
@@ -22,17 +30,66 @@ class PostItem extends StatefulWidget {
 class _PostItemState extends State<PostItem> {
   bool isLiked = false;
 
+  // Format the date and time to a readable string in 12-hour format with a 2-hour adjustment
+  String _formatDate(DateTime date) {
+    final adjustedDate = date.add(Duration(hours: 2));
+    return DateFormat('dd/MM/yyyy hh:mm a').format(adjustedDate);
+  }
+
+  void _onProfilePicturePressed(String profileImage) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullScreenImage(
+          imageUrl: profileImage.isNotEmpty
+              ? profileImage
+              : 'assets/default_profile.png',
+        ),
+      ),
+    );
+  }
+
+  void _onUsernamePressed() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(
+          profilePicture: widget.post.profilePicture.isNotEmpty
+              ? widget.post.profilePicture
+              : 'assets/default_profile.png',
+          firstName: widget.post.username.split(' ')[0],
+          lastName: widget.post.username.split(' ').length > 1
+              ? widget.post.username.split(' ')[1]
+              : '',
+          currentUserId: widget.currentUserId.toString(),
+          secondUserId: widget.post.userId.toString(),
+          jwtToken: widget.jwtToken,
+        ),
+      ),
+    );
+  }
+
+  void _reportPost() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReportPage(
+          postId: widget.post.postId,
+          currentUserId: widget.currentUserId,
+          secondUserId: widget.post.userId,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Determine the profile picture URL
     String profileImage = widget.post.profilePicture;
 
-    // Check if the profileImage is a valid URL (starts with 'http' or 'https')
-    bool isValidUrl = profileImage.startsWith('http://') || profileImage.startsWith('https://');
-    
-    // If it's not a valid URL, use the fallback local image
+    bool isValidUrl =
+        profileImage.startsWith('http://') || profileImage.startsWith('https://');
     if (!isValidUrl) {
-      profileImage = 'assets/default_profile_picture.png'; // Fallback local image
+      profileImage = 'assets/default_profile.png';
     }
 
     return Column(
@@ -42,18 +99,50 @@ class _PostItemState extends State<PostItem> {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              // Profile Picture with caching and URL validation
-              CircleAvatar(
-                backgroundImage: isValidUrl
-                    ? CachedNetworkImageProvider(profileImage) // Use cached network image if URL is valid
-                    : AssetImage(profileImage) as ImageProvider, // Fallback to asset image
+              GestureDetector(
+                onTap: () => _onProfilePicturePressed(profileImage),
+                child: CircleAvatar(
+                  backgroundImage: isValidUrl
+                      ? CachedNetworkImageProvider(profileImage)
+                      : AssetImage(profileImage) as ImageProvider,
+                ),
               ),
               SizedBox(width: 10),
-              Text(
-                widget.post.username, 
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              GestureDetector(
+                onTap: _onUsernamePressed,
+                child: Text(
+                  widget.post.username,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+              ),
+              Spacer(),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'report') {
+                    _reportPost();
+                  }
+                },
+                itemBuilder: (BuildContext context) => [
+                  PopupMenuItem<String>(
+                    value: 'report',
+                    child: Row(
+                      children: [
+                        Icon(Icons.report, color: Colors.red),
+                        SizedBox(width: 10),
+                        Text('Report Post'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Text(
+            "Posted on: ${_formatDate(widget.post.createdAt)}",
+            style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ),
         Padding(
@@ -64,12 +153,41 @@ class _PostItemState extends State<PostItem> {
           ),
         ),
         SizedBox(height: 16),
-        ClipRRect(
-          child: Image.network(
-            widget.post.photoUrl,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: 250,
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PostPhotoFullPage(
+                  imageUrl: widget.post.photoUrl,
+                  postDescription: widget.post.description,
+                  isLiked: isLiked,
+                  postId: widget.post.postId,
+                  currentUserId: widget.currentUserId,
+                  currentEmail: widget.currentEmail,
+                  jwtToken: widget.jwtToken,
+                ),
+              ),
+            );
+          },
+          child: ClipRRect(
+            child: CachedNetworkImage(
+              imageUrl: widget.post.photoUrl,
+              cacheManager: CacheManager(
+                Config(
+                  'customCacheKey',
+                  stalePeriod: Duration(days: 7),
+                  maxNrOfCacheObjects: 100,
+                ),
+              ),
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 250,
+              placeholder: (context, url) => Center(
+                  child: SpinKitFadingCircle(color: Colors.grey, size: 50.0)),
+              errorWidget: (context, url, error) =>
+                  Center(child: Icon(Icons.error)),
+            ),
           ),
         ),
         Padding(
@@ -79,7 +197,7 @@ class _PostItemState extends State<PostItem> {
             children: [
               IconButton(
                 icon: Icon(
-                  Icons.thumb_up, 
+                  Icons.thumb_up,
                   color: isLiked ? Colors.deepOrange : Colors.grey,
                 ),
                 onPressed: () {
@@ -90,7 +208,7 @@ class _PostItemState extends State<PostItem> {
               ),
               IconButton(
                 icon: Icon(
-                  Icons.comment, 
+                  Icons.comment,
                   color: Colors.deepOrange,
                 ),
                 onPressed: () {
@@ -100,6 +218,7 @@ class _PostItemState extends State<PostItem> {
                       postId: widget.post.postId,
                       currentUserId: widget.currentUserId,
                       currentEmail: widget.currentEmail,
+                      jwtToken: widget.jwtToken,
                     ),
                   );
                 },

@@ -10,6 +10,7 @@ class ProfilePage extends StatefulWidget {
   final String lastName;
   final String currentUserId;
   final String secondUserId;
+  final String jwtToken; // Add jwtToken to the ProfilePage constructor
 
   const ProfilePage({
     Key? key,
@@ -18,6 +19,7 @@ class ProfilePage extends StatefulWidget {
     required this.lastName,
     required this.currentUserId,
     required this.secondUserId,
+    required this.jwtToken, // Include jwtToken as required
   }) : super(key: key);
 
   @override
@@ -203,6 +205,7 @@ class _ProfilePageState extends State<ProfilePage> {
               currentUserId: currentUserId, // Pass as int here
               currentEmail: widget.currentUserId, // You should pass an actual email, this can be updated accordingly
               secondUserId: secondUserId, // Pass as int here
+              jwtToken: widget.jwtToken, // Pass jwtToken to ProfilePostListPage
             ),
           ),
         ],

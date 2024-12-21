@@ -11,8 +11,9 @@ import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
 
 class Chats extends StatefulWidget {
   final String myUserId; // The ID of the logged-in user
+  final String jwtToken; // JWT Token
 
-  const Chats({super.key, required this.myUserId});
+  const Chats({super.key, required this.myUserId, required this.jwtToken});
 
   @override
   _ChatsState createState() => _ChatsState();
@@ -57,6 +58,7 @@ class _ChatsState extends State<Chats> {
           firstName: firstName, // Pass the user's first name
           lastName: lastName, // Pass the user's last name
           profilePicture: profilePicture, // Pass the profile picture
+          
         ),
       ),
     );
@@ -154,7 +156,10 @@ class _ChatsState extends State<Chats> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ContactsScreen(myUserId: widget.myUserId),
+              builder: (context) => ContactsScreen(
+                myUserId: widget.myUserId,
+                jwtToken: widget.jwtToken, // Pass jwtToken here as well
+              ),
             ),
           );
         },

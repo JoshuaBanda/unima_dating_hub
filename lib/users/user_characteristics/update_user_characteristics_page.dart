@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
+import 'user_characteristics_page.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class UpdateFieldPage extends StatefulWidget {
   final String userId; // Accept user_id as a parameter
@@ -17,6 +19,7 @@ class _UpdateFieldPageState extends State<UpdateFieldPage> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedField;
   String? _selectedValue;
+  bool _isLoading = false; // Track loading state
 
   // List of fields that can be updated
   final List<String> _fields = [
@@ -31,18 +34,22 @@ class _UpdateFieldPageState extends State<UpdateFieldPage> {
 
   // Mapping fields to their possible values
   final Map<String, List<String>> _fieldOptions = {
-    'Sex': ['Male', 'Female', 'Other'],
-    'Height': ['< 5 feet', '5 - 6 feet', '6+ feet'],
-    'Skin Color': ['Fair', 'Medium', 'Dark'],
+    'Sex': ['Male', 'Female',],
+    'Height': ['100', '150', '200'],
+    'Skin Color': ['Light', 'Medium', 'Dark'],
     'Hobby': ['Reading', 'Sports', 'Music', 'Traveling'],
-    'Location': ['Urban', 'Suburban', 'Rural'],
-    'Program of Study': ['Computer Science', 'Business', 'Engineering', 'Arts'],
-    'Year of Study': ['Freshman', 'Sophomore', 'Junior', 'Senior'],
+    'Location': ['Campus', 'Chikanda'],
+    'Program of Study': ['Information Systems', 'Computer Science', 'Bsc Generic', 'Biology', 'Computer Networking Engineering', 'Early Childhood Development', 'Electronics', 'Mathematics', 'Physics', 'Statistics', 'Geography', 'Geology', 'Food and Nutrition', 'Consumer Science', 'Actuarial Science', 'Diploma in Statistics', 'Education in Biology Science', 'Education in Chemistry', 'Education in Computer Science', 'Education in Ecology', 'Education in Language', 'Education in Mathematics', 'Education in Physics', 'Education in Social Studies', 'Communication and Cultural Studies', 'Humanities', 'Media for Development', 'Theology', 'Law', 'Diploma in Law', 'Development Economics', 'Sociology', 'Psychology', 'Social Economic History', 'Gender Studies', 'Social Work', 'Social Science', 'Public Administration', 'Political Science', 'Human Resource Management', 'Economics', 'Law Enforcement'],
+    'Year of Study': ['1', '2', '3', '4', '5'],
   };
 
   // Function to handle PUT request
   Future<void> _updateField() async {
     if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoading = true; // Show loading indicator
+      });
+
       String url = 'https://your-backend-api.com/update'; // Replace with your backend URL
       String selectedField = _selectedField ?? '';
       String updatedValue = _selectedValue ?? '';  // Use the selected value from the dropdown
@@ -62,6 +69,10 @@ class _UpdateFieldPageState extends State<UpdateFieldPage> {
           body: json.encode(payload),
         );
 
+        setState(() {
+          _isLoading = false; // Hide loading indicator
+        });
+
         if (response.statusCode == 200) {
           // Success
           ScaffoldMessenger.of(context).showSnackBar(
@@ -74,6 +85,9 @@ class _UpdateFieldPageState extends State<UpdateFieldPage> {
           );
         }
       } catch (error) {
+        setState(() {
+          _isLoading = false; // Hide loading indicator
+        });
         // Network or server error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $error')),
@@ -93,15 +107,14 @@ class _UpdateFieldPageState extends State<UpdateFieldPage> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 255, 255, 255), // Set AppBar color to red
         title: Text(
-          "Update User Field",  // Text to display
-          style: GoogleFonts.dancingScript(
+          "Change character",  // Text to display
+          style: GoogleFonts.raleway(
             textStyle: TextStyle(
               foreground: Paint()
                 ..shader = LinearGradient(
                   colors: [const Color.fromARGB(255, 253, 107, 102), Colors.orange],
                 ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
-              fontStyle: FontStyle.italic, // Italic font style
-              fontSize: 32,  // Font size set to 32
+              fontSize: 24,  // Font size set to 32
             ),
           ),
         ),
@@ -187,16 +200,40 @@ class _UpdateFieldPageState extends State<UpdateFieldPage> {
                   ),
                 ),
 
-              // Update button
+              // Loading spinner or Update button
+              _isLoading
+                  ? Center(child: SpinKitFadingCircle(color: Colors.grey, size: 50.0))
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: ElevatedButton(
+                        onPressed: _updateField,
+                        child: Text(
+                          'Update character',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,  // Red background color
+                        ),
+                      ),
+                    ),
+
+              // New option for first time bio setup
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                padding: const EdgeInsets.only(top: 16.0),
                 child: ElevatedButton(
-                  onPressed: _updateField,
-                  child: Text('Update Field',
-                  style: TextStyle(color: Colors.white)
-                  ,),
+                  onPressed: () {
+                    // Navigate to SetUpBioPage if this button is pressed
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => UserCharacteristicsPage(userId: widget.userId)),
+                    );
+                  },
+                  child: Text(
+                    'First time setting up your bio? Set up now.',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,  // Red background color
+                    backgroundColor: Colors.grey[500],  // Blue background for bio setup button
                   ),
                 ),
               ),

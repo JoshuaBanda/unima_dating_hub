@@ -4,11 +4,13 @@ import 'package:unima_dating_hub/posts/post_list.dart'; // Ensure this import is
 class HomeScreen extends StatefulWidget {
   final int currentUserId;
   final String currentEmail;
+  final String jwtToken; // Add jwtToken parameter
 
   const HomeScreen({
     Key? key,
     required this.currentUserId,
     required this.currentEmail,
+    required this.jwtToken, // Make sure jwtToken is passed here
   }) : super(key: key);
 
   @override
@@ -18,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -31,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: PostListPage(
                     currentUserId: widget.currentUserId, // Pass currentUserId to PostList
                     currentEmail: widget.currentEmail,   // Pass currentEmail to PostList
+                    jwtToken: widget.jwtToken,
                   ),
                 ),
               ],

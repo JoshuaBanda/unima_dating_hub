@@ -10,6 +10,7 @@ import '/users/profile_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:unima_dating_hub/posts/create_post_page.dart';
 import 'package:animated_text_kit/animated_text_kit.dart'; // Import AnimatedTextKit
+import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
 
 class FarmSmartScreen extends StatefulWidget {
   @override
@@ -26,6 +27,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
   String lastName = '';
   String profilePicture = '';
   bool activationStatus = false;
+  String jwt_token = ''; // Declare the jwt_token variable
 
   // Initialize FlutterSecureStorage
   final FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -43,12 +45,14 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
   // Fetch the stored user data from secure storage
   void _fetchUserData() async {
     // Load user data from secure storage
+    jwt_token = await _storage.read(key: 'jwt_token') ?? '';  // Corrected the key
     currentUserId = await _storage.read(key: 'userid') ?? '';
     currentUserEmail = await _storage.read(key: 'email') ?? '';
     firstName = await _storage.read(key: 'firstname') ?? '';
     lastName = await _storage.read(key: 'lastname') ?? '';
     profilePicture = await _storage.read(key: 'profilepicture') ?? '';
-    String? activationStatusString = await _storage.read(key: 'activationstatus');
+    String? activationStatusString =
+        await _storage.read(key: 'activationstatus');
     activationStatus = activationStatusString == 'true';
 
     // Wait for 2 seconds to simulate a loading period
@@ -56,7 +60,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
 
     // After the delay, update the state to indicate that the data is ready
     setState(() {
-      isDataLoaded = true;  // Mark data as loaded
+      isDataLoaded = true; // Mark data as loaded
     });
   }
 
@@ -89,13 +93,35 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
             style: TextStyle(color: Colors.black),
           ),
         ),
+        PopupMenuItem(
+          value: 'navigate', // Add this item for navigation
+          child: Text(
+            'Edit bio', // The option text
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
       ],
       elevation: 8.0,
     ).then((value) {
-      if (value != null && value == 'logout') {
-        _handleLogout(context);
+      if (value != null) {
+        if (value == 'logout') {
+          _handleLogout(context); // Handle the logout logic
+        } else if (value == 'navigate') {
+          _navigateToNewPage(context); // Navigate to the new page
+        }
       }
     });
+  }
+
+  // Function to navigate to the new page
+  void _navigateToNewPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UpdateFieldPage(
+            userId: currentUserId), // Replace NewPage with your actual page widget
+      ),
+    );
   }
 
   @override
@@ -106,7 +132,10 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [const Color.fromARGB(255, 255, 162, 156), const Color.fromARGB(255, 255, 230, 193)],
+              colors: [
+                const Color.fromARGB(255, 255, 162, 156),
+                const Color.fromARGB(255, 255, 230, 193)
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -116,15 +145,18 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "UNIMA DATES",  // Text to display
+                  "UNIMA DATES", // Text to display
                   style: GoogleFonts.dancingScript(
                     textStyle: TextStyle(
                       foreground: Paint()
                         ..shader = LinearGradient(
-                          colors: [const Color.fromARGB(255, 253, 107, 102), Colors.orange],
+                          colors: [
+                            const Color.fromARGB(255, 253, 107, 102),
+                            Colors.orange
+                          ],
                         ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
                       fontStyle: FontStyle.italic, // Italic font style
-                      fontSize: 32,  // Font size set to 32
+                      fontSize: 32, // Font size set to 32
                     ),
                   ),
                 ),
@@ -150,7 +182,8 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
                     ),
                   ],
                   totalRepeatCount: 5, // Repeat the animation a few times
-                  pause: Duration(milliseconds: 500), // Pause between animation loops
+                  pause: Duration(
+                      milliseconds: 500), // Pause between animation loops
                 ),
               ],
             ),
@@ -220,14 +253,17 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
             child: IndexedStack(
               index: _currentIndex,
               children: [
-                // Pass the currentUserEmail to HomeScreen as a required parameter
+                // Pass the currentUserEmail and jwtToken to HomeScreen as required
                 HomeScreen(
-                  currentUserId: currentUserId.isNotEmpty ? int.tryParse(currentUserId) ?? 0 : 0, // Safely parse or default to 0
+                  currentUserId: currentUserId.isNotEmpty
+                      ? int.tryParse(currentUserId) ?? 0
+                      : 0, // Safely parse or default to 0
                   currentEmail: currentUserEmail, // Pass currentUserEmail
+                  jwtToken: jwt_token,  // Pass jwtToken here
                 ),
-                Chats(myUserId: currentUserId),
+                Chats(myUserId: currentUserId,jwtToken: jwt_token,),
                 const SizedBox.shrink(),
-                ContactsScreen(myUserId: currentUserId),
+                ContactsScreen(myUserId: currentUserId,jwtToken: jwt_token,),
                 PreferencesScreen(),
               ],
             ),

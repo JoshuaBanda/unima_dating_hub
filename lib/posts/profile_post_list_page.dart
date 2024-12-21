@@ -9,12 +9,14 @@ class ProfilePostListPage extends StatefulWidget {
   final int currentUserId;  // The ID of the current user
   final String currentEmail; // The email of the current user
   final int secondUserId;   // The ID of the second user
+  final String jwtToken;    // JWT token to authorize API requests
 
-  // Constructor now accepts secondUserId as well
+  // Constructor now accepts jwtToken as well
   ProfilePostListPage({
     required this.currentUserId,
     required this.currentEmail,
     required this.secondUserId, // Adding secondUserId to the constructor
+    required this.jwtToken,     // Adding jwtToken to the constructor
   });
 
   @override
@@ -27,7 +29,11 @@ class _ProfilePostListPageState extends State<ProfilePostListPage> {
   @override
   void initState() {
     super.initState();
-    posts = ApiService().fetchPostsByUserId( widget.secondUserId ); // Fetch posts on initial load
+    // Now pass both jwtToken and secondUserId when calling fetchPostsByUserId
+    posts = ApiService().fetchPostsByUserId(
+      jwtToken: widget.jwtToken, // Pass jwtToken
+      userId: widget.secondUserId, // Pass secondUserId as the userId
+    );
   }
 
   @override
@@ -58,6 +64,7 @@ class _ProfilePostListPageState extends State<ProfilePostListPage> {
                         post: post,
                         currentUserId: widget.currentUserId,
                         currentEmail: widget.currentEmail,
+                        jwtToken: widget.jwtToken,  // Pass the jwtToken here
                       );
                     },
                   );

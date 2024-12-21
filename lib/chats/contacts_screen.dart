@@ -9,8 +9,9 @@ import 'package:google_fonts/google_fonts.dart'; // Import the Google Fonts pack
 
 class ContactsScreen extends StatefulWidget {
   final String myUserId; // The ID of the logged-in user
+  final String jwtToken; // Add jwtToken to ContactsScreen constructor
 
-  const ContactsScreen({super.key, required this.myUserId});
+  const ContactsScreen({super.key, required this.myUserId, required this.jwtToken}); // Pass jwtToken
 
   @override
   _ContactsScreenState createState() => _ContactsScreenState();
@@ -82,6 +83,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                           lastName: user['lastname'],
                           currentUserId: widget.myUserId,
                           secondUserId: user['userid'].toString(),
+                          jwtToken: widget.jwtToken, // Pass jwtToken here
                         ),
                       ),
                     );
@@ -119,8 +121,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                   radius: 30,
                                   backgroundColor: Colors
                                       .grey, // Placeholder circle while loading
-                                  child:
-                                      CircularProgressIndicator(), // Spinner while loading image
+                                  child:SpinKitFadingCircle(color: Colors.grey, size: 30.0), // Spinner while loading image
                                 ),
                                 errorWidget: (context, url, error) =>
                                     const CircleAvatar(

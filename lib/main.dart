@@ -33,6 +33,7 @@ void main() async {
     lastName: lastName,
     profilePicture: profilePicture,
     activationStatus: activationStatus,
+    jwtToken: token ?? '',  // Pass the jwtToken here
   ));
 }
 
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
   final String lastName;
   final String profilePicture;
   final bool activationStatus;
+  final String jwtToken; // Add the jwtToken parameter
 
   const MyApp({
     super.key,
@@ -54,23 +56,27 @@ class MyApp extends StatelessWidget {
     required this.lastName,
     required this.profilePicture,
     required this.activationStatus,
+    required this.jwtToken,  // Receive jwtToken
   });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: '/cr',
+      initialRoute: isLoggedIn ? '/home' : '/landingpage',
       routes: {
         '/home': (context) => FarmSmartScreen(),
         '/login': (context) => const LoginPage(),
         '/landingpage': (context) => const LandingPage(),
         '/land': (context) =>
-            PostListPage(currentUserId: 1, currentEmail: 'bsc'),
+            PostListPage(
+              currentUserId: int.tryParse(userId ?? '0') ?? 0, 
+              currentEmail: userEmail ?? '', 
+              jwtToken: jwtToken), // Pass jwtToken here
         
-        '/cr': (context) => UserCharacteristicsPage(userId: '1'),
+        '/cr': (context) => UserCharacteristicsPage(userId: userId ?? '1'),
         
-        '/cr2': (context) => UpdateFieldPage(userId: '1'),
+        '/cr2': (context) => UpdateFieldPage(userId: userId ?? '1'),
       },
     );
   }

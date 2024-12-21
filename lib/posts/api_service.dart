@@ -5,14 +5,19 @@ import 'comments/comments.dart';
 
 class ApiService {
   final String baseUrl = 'https://datehubbackend.onrender.com'; // Your backend URL
-  final http.Client client = http.Client();  // Optional: Using a client for better control
+  final http.Client client = http.Client(); // Optional: Using a client for better control
 
   // Fetch all posts with pagination (page and limit parameters)
-  Future<List<Post>> fetchPosts({int page = 1, int limit = 10}) async {
+  Future<List<Post>> fetchPosts({required String jwtToken, int page = 1, int limit = 10}) async {
     try {
-      final response = await client.get(Uri.parse('$baseUrl/post?page=$page&limit=$limit'));
+      final response = await client.get(
+        Uri.parse('$baseUrl/post?page=$page&limit=$limit'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
-      // Print the response body for debugging
       print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -28,11 +33,16 @@ class ApiService {
   }
 
   // Fetch posts by userId
-  Future<List<Post>> fetchPostsByUserId(int userId) async {
+  Future<List<Post>> fetchPostsByUserId({required String jwtToken, required int userId}) async {
     try {
-      final response = await client.get(Uri.parse('$baseUrl/post/user/$userId'));
+      final response = await client.get(
+        Uri.parse('$baseUrl/post/user/$userId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
-      // Print the response body for debugging
       print('Response Body for user $userId: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -48,11 +58,16 @@ class ApiService {
   }
 
   // Fetch a single post by its ID
-  Future<Post> fetchPostById(int postId) async {
+  Future<Post> fetchPostById({required String jwtToken, required int postId}) async {
     try {
-      final response = await client.get(Uri.parse('$baseUrl/post/$postId'));
+      final response = await client.get(
+        Uri.parse('$baseUrl/post/$postId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
-      // Print the response body for debugging
       print('Response Body for post $postId: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -67,11 +82,16 @@ class ApiService {
   }
 
   // Fetch comments for a specific post, including user info (username, profile picture)
-  Future<List<Comment>> fetchComments(int postId) async {
+  Future<List<Comment>> fetchComments({required String jwtToken, required int postId}) async {
     try {
-      final response = await client.get(Uri.parse('$baseUrl/post-comments/$postId'));
+      final response = await client.get(
+        Uri.parse('$baseUrl/post-comments/$postId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
-      // Print the response body for debugging
       print('Response Body for comments of post $postId: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -87,11 +107,14 @@ class ApiService {
   }
 
   // Create a comment for a specific post
-  Future<void> createComment(int postId, String commentText, int userId) async {
+  Future<void> createComment({required String jwtToken, required int postId, required String commentText, required int userId}) async {
     try {
       final response = await client.post(
         Uri.parse('$baseUrl/post-comments/create'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode({
           'post_id': postId,
           'comment': commentText,
@@ -99,7 +122,6 @@ class ApiService {
         }),
       );
 
-      // Print the response body for debugging
       print('Response Body for creating comment: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {

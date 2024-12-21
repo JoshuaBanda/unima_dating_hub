@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';  // Import 
 import '/home/home.dart';  // Import the correct file where FarmSmartScreen is defined
 import '/user_verification/sign_up.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';  // Import the spin kit package
+import '/users/user_characteristics/user_characteristics_page.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
@@ -109,7 +110,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => FarmSmartScreen(),
+              builder: (context) =>UserCharacteristicsPage(userId: widget.currentUserId),
             ),
           );
         } else {
