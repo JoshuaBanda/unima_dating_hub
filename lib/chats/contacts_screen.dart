@@ -38,18 +38,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Contacts',
-          style: GoogleFonts.dancingScript(
-            textStyle: TextStyle(
-              color: Colors.red, // You can adjust the color as needed
-              fontStyle: FontStyle.italic, // Slanted look
-              fontSize: 35,  // Adjust font size as per your preference
-            ),
-          ),
-        ),
-      ),
       body: FutureBuilder<List<dynamic>>(
         future: fetchUsers(),
         builder: (context, snapshot) {
@@ -68,7 +56,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
               itemBuilder: (context, index) {
                 final user = users[index];
                 String profilePicture = user['profilepicture'] ?? ''; // Safely handle null profilePicture
-                print('profilepicture $profilePicture');
                 return GestureDetector(
                   onTap: () {
                     // Navigate to ProfilePage when a user is tapped
@@ -138,18 +125,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       ),
                       title: Text(
                         '${user['firstname']} ${user['lastname']}',
-                        style: GoogleFonts.dancingScript(
+                        style: GoogleFonts.montserrat(
                           textStyle: TextStyle(
-                            fontStyle: FontStyle.italic, // Make the text slanted
-                            fontSize: 25,  // Adjust the font size as needed
+                            fontSize: 18,  // Adjust the font size as needed
                           ),
                         ),
                       ),
                       subtitle: Text(
-                        'Tap to view profile',
+                        'Tap to add friend',
                         style: GoogleFonts.dancingScript(
                           textStyle: TextStyle(
-                            fontStyle: FontStyle.italic,
                             fontSize: 16, // Adjust font size as needed
                           ),
                         ),

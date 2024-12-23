@@ -3,31 +3,31 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:ui'; // For BackdropFilter
 import 'comment_dialog.dart'; // Import the CommentDialog
 
-class PostPhotoFullPage extends StatefulWidget {
+class ConfessionPhotoFullPage extends StatefulWidget {
   final String? imageUrl;
-  final String postDescription;
+  final String confessionDescription;
   final bool isLiked;
-  final int postId;
+  final int confessionId;
   final int currentUserId;
   final String currentEmail;
   final String jwtToken; // Add jwtToken parameter
 
-  const PostPhotoFullPage({
+  const ConfessionPhotoFullPage({
     super.key,
     required this.imageUrl,
-    required this.postDescription,
+    required this.confessionDescription,
     required this.isLiked,
-    required this.postId,
+    required this.confessionId,
     required this.currentUserId,
     required this.currentEmail,
     required this.jwtToken, // Initialize jwtToken
   });
 
   @override
-  _PostPhotoFullPageState createState() => _PostPhotoFullPageState();
+  _ConfessionPhotoFullPageState createState() => _ConfessionPhotoFullPageState();
 }
 
-class _PostPhotoFullPageState extends State<PostPhotoFullPage> {
+class _ConfessionPhotoFullPageState extends State<ConfessionPhotoFullPage> {
   bool isLiked = false;
 
   @override
@@ -98,7 +98,7 @@ class _PostPhotoFullPageState extends State<PostPhotoFullPage> {
               children: [
                 // Description Text
                 Text(
-                  widget.postDescription,
+                  widget.confessionDescription,
                   style: TextStyle(color: Colors.white, fontSize: 16),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
@@ -125,11 +125,11 @@ class _PostPhotoFullPageState extends State<PostPhotoFullPage> {
                         color: Colors.white,
                       ),
                       onPressed: () {
-                        // Open CommentDialog just as in the PostItem widget
+                        // Open CommentDialog just as in the ConfessionItem widget
                         showDialog(
                           context: context,
                           builder: (context) => CommentDialog(
-                            postId: widget.postId,
+                            confessionId: widget.confessionId,
                             currentUserId: widget.currentUserId,
                             currentEmail: widget.currentEmail,
                             jwtToken: widget.jwtToken, // Pass jwtToken to CommentDialog

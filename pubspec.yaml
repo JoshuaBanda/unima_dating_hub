@@ -85,6 +85,7 @@ flutter:
   assets:
     - assets/
     - assets/sounds/message_sent.mp3
+    - assets/sounds/message_received.mp3
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

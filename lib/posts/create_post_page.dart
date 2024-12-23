@@ -51,8 +51,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
       final description = _descriptionController.text.isEmpty ? ' ' : _descriptionController.text;
       final photoPath = _selectedImage!.path;
 
-      // Print userId for debugging
-      print('User ID: ${widget.userId}');
 
       // Prepare the multipart request
       final uri = Uri.parse('https://datehubbackend.onrender.com/post/create');  // Replace with your API endpoint
@@ -74,7 +72,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
         // Send the request
         var response = await request.send();
         final responseBody = await response.stream.bytesToString();  // Get response body for debugging
-        print('Response body: $responseBody');
 
         setState(() {
           isLoading = false; // Stop loading
@@ -89,15 +86,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
             SnackBar(content: Text('Post created successfully!')),
           );
 
-          // Optionally, display the created post info
-          final String photoUrl = responseMap['post']['photo_url'];
-          final String postDescription = responseMap['post']['description'];
-          final int postId = responseMap['post']['post_id'];
 
-          // Show post details in the console or UI
-          print("Post ID: $postId");
-          print("Post Description: $postDescription");
-          print("Post Image URL: $photoUrl");
 
           // Reset fields
           setState(() {
@@ -119,7 +108,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('An error occurred. Please try again.')),
         );
-        print('Error: $e');
       }
     }
   }
@@ -189,7 +177,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                       height: 50,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors:const [Colors.red, Colors.orange],  // Gradient colors
+                          colors:const [Colors.pink, Colors.red],  // Gradient colors
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),

@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';  // Import Timer for countdown
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';  // Import Flutter Secure Storage
-import '/home/home.dart';  // Import the correct file where FarmSmartScreen is defined
 import '/user_verification/sign_up.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';  // Import the spin kit package
 import '/users/user_characteristics/user_characteristics_page.dart';

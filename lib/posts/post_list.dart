@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'post/post.dart';
-import 'comments/comments.dart';
 import 'api_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -32,7 +31,7 @@ class _PostListPageState extends State<PostListPage> {
 
   final List<String> _carouselImages = [
     'assets/image1.jpg',
-    'assets/image2.jpg',
+    'assets/image7.jpg',
     'assets/image3.jpg',
     'assets/image4.jpg',
   ];
@@ -54,7 +53,7 @@ class _PostListPageState extends State<PostListPage> {
   _loadPosts() {
     setState(() {
       posts = ApiService().fetchPosts(
-        jwtToken: widget.jwtToken, // Pass jwtToken to the fetchPosts method
+        jwtToken: widget.jwtToken, 
         page: currentPage,
         limit: limit,
       );
@@ -73,6 +72,7 @@ class _PostListPageState extends State<PostListPage> {
       page: currentPage + 1,
       limit: limit,
     );
+
     setState(() {
       currentPage++; // Increment page number after fetching more posts
       allPosts.addAll(newPosts); // Add the new posts to the list
@@ -135,7 +135,11 @@ class _PostListPageState extends State<PostListPage> {
                   return Center(child: Text('No posts available'));
                 } else {
                   List<Post> postsList = snapshot.data!; // Posts fetched from API
-                  allPosts.addAll(postsList); // Add the posts to the list
+
+                  // Update the allPosts list only if it is the first time fetching posts
+                  if (allPosts.isEmpty) {
+                    allPosts.addAll(postsList); // Only add the posts if it's the first time
+                  }
 
                   return Column(
                     children: [

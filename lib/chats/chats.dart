@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '/services/chat_service.dart'; // Import ChatService
-import '/repository/chat_repository.dart'; // Import ChatRepository
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart'; // For formatting the timestamp
+import '/services/chat_service.dart';
+import '/repository/chat_repository.dart';
 import '/chats/full_screen_image_page.dart';
-import 'inbox_messages.dart';
 import '/chats/contacts_screen.dart';
-import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
+import 'messages/chat_messages.dart';
 
 class Chats extends StatefulWidget {
-  final String myUserId; // The ID of the logged-in user
-  final String jwtToken; // JWT Token
+  final String myUserId;
+  final String jwtToken;
 
   const Chats({super.key, required this.myUserId, required this.jwtToken});
 
@@ -20,31 +21,108 @@ class Chats extends StatefulWidget {
 }
 
 class _ChatsState extends State<Chats> {
-  late final ChatService chatService; // Declare ChatService
+  late final ChatService chatService;
   List<dynamic> users = [];
   bool loading = true;
   String error = '';
   bool creatingInbox = false;
-  double _imageSize = 30.0; // Initial image size for the CircleAvatar
+  double _imageSize = 30.0;
 
-  // Fetch users using the ChatService
+  @override
+  void initState() {
+    super.initState();
+    chatService = ChatService(chatRepository: ChatRepository(apiUrl: 'https://datehubbackend.onrender.com'));
+    fetchUsers();
+  }
+
+  // Method to fetch users and their last message timestamps
   Future<void> fetchUsers() async {
     try {
       final usersData = await chatService.getUsers(widget.myUserId);
+      // Include the timestamp of the last message to help with sorting
+      for (var user in usersData) {
+        final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
+        final lastMessage = await chatService.getLastMessage(inboxId);
+        final createdAt = lastMessage['createdAt'] ?? '';
+        user['lastMessageTime'] = createdAt; // Add the timestamp for sorting
+      }
+
+      // Sort the users by the last message time (most recent first)
+      usersData.sort((a, b) {
+        final timeA = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
+        final timeB = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
+        return timeB.compareTo(timeA); // Sort in descending order
+      });
+
       setState(() {
         users = usersData;
         loading = false;
+        error = '';
       });
     } catch (e) {
+      debugPrint('Error fetching users: $e');
       setState(() {
-        error = 'No users available';
+        error = 'Failed to load users';
         loading = false;
       });
     }
   }
 
-  // Create inbox conversation and navigate to the chat page
-  Future<void> navigateToInbox(int userId, String firstName, String lastName, String profilePicture) async {
+  // Format the timestamp to a 12-hour time format
+  String formatTimestamp(String timestamp) {
+  if (timestamp.isEmpty || timestamp == 'No timestamp available') {
+    debugPrint("Timestamp is empty");
+    return 'No timestamp available';
+  }
+
+  try {
+    // Ensure the timestamp has 'T' separating date and time (if lowercase 't', replace with uppercase 'T')
+    final String timestampLower = timestamp.toLowerCase(); // Convert to lowercase if needed
+    final String correctedTimestamp = timestampLower.replaceAll('t', 'T'); // Fix lowercase 't'
+
+    // Remove milliseconds from the timestamp if they are included (optional)
+    final trimmedTimestamp = correctedTimestamp.split('.')[0];  // Keep only the date and time part
+
+
+    final DateTime dateTime = DateTime.parse(trimmedTimestamp);
+
+    // Extract and format the time into 12-hour format
+    final DateFormat timeFormatter = DateFormat('hh:mm a'); // 12-hour format with AM/PM
+    final String formattedTime = timeFormatter.format(dateTime);
+
+
+    return formattedTime;
+  } catch (e) {
+    debugPrint('Error formatting timestamp: $e');
+    return 'Invalid time format';
+  }
+}
+
+  // Method to fetch the last message for a user
+  Future<Map<String, dynamic>> getLastMessageForUser(String inboxId) async {
+    try {
+      final lastMessage = await chatService.getLastMessage(inboxId);
+      
+      // Debugging the response to verify the structure
+
+      // Ensure createdAt is present in the response
+      final message = lastMessage['message'] ?? '';
+      final createdAt = lastMessage['createdat'] ?? '';  // Make sure to handle createdAt as per the response key
+
+      // Debugging to see the values of message and createdAt
+
+      return {
+        'message': message,
+        'createdAt': createdAt,
+      };
+    } catch (e) {
+      debugPrint('Error fetching last message: $e');
+      return {'message': 'Unable to fetch message', 'createdAt': ''};
+    }
+  }
+
+  // Navigate to the inbox of the selected user
+  Future<void> navigateToInbox(int userId, String firstName, String lastName, String profilePicture, String inboxId) async {
     setState(() {
       creatingInbox = true;
     });
@@ -54,97 +132,110 @@ class _ChatsState extends State<Chats> {
       MaterialPageRoute(
         builder: (context) => Chills(
           userId: userId.toString(),
-          myUserId: widget.myUserId, // Pass the logged-in user's ID
-          firstName: firstName, // Pass the user's first name
-          lastName: lastName, // Pass the user's last name
-          profilePicture: profilePicture, // Pass the profile picture
-          
+          myUserId: widget.myUserId,
+          firstName: firstName,
+          lastName: lastName,
+          profilePicture: profilePicture,
+          inboxid: inboxId,
         ),
       ),
     );
   }
 
-  // Function to toggle image size when tapped
-  void _toggleImageSize() {
-    setState(() {
-      _imageSize = _imageSize == 30.0 ? 50.0 : 30.0; // Toggle between two sizes
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize the service with the repository
-    chatService = ChatService(chatRepository: ChatRepository(apiUrl: 'https://datehubbackend.onrender.com'));
-    fetchUsers(); // Fetch users on screen load
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Messages',
-          style: GoogleFonts.dancingScript(
-            textStyle: TextStyle(
-              fontSize: 30,
-              color: Colors.red,
-              fontStyle: FontStyle.italic, // Slanted look
-            ),
-          ),
-        ),
-      ),
       body: loading
-          ? const Center(child: SpinKitFadingCircle(color: Colors.grey, size: 50.0))
+          ? const Center(
+              child: SpinKitFadingCircle(
+                color: Colors.grey,
+                size: 50.0,
+              ),
+            )
           : error.isNotEmpty
-              ? Center(child: Text(error))
+              ? Center(
+                  child: Text(error),
+                )
               : users.isEmpty
-                  ? const Center(child: Text('No users found'))
+                  ? const Center(
+                      child: Text('No users found'),
+                    )
                   : ListView.builder(
                       itemCount: users.length,
                       itemBuilder: (context, index) {
                         final user = users[index];
-                        String profilepicture = user['profilepicture'] ?? ''; // Safely handle null profilePicture
+                        String profilePicture = user['profilepicture'] ?? '';
+                        String firstName = user['firstname'] ?? 'Unknown';
+                        String lastName = user['lastname'] ?? 'User';
+                        String inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
 
                         return GestureDetector(
                           onTap: () => navigateToInbox(
-                            user['userid'],              // Pass user ID
-                            user['firstname'],           // Pass the user's first name
-                            user['lastname'],            // Pass the user's last name
-                            profilepicture,              // Pass the profile picture URL
+                            user['userid'],
+                            firstName,
+                            lastName,
+                            profilePicture,
+                            inboxId,
                           ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: ListTile(
                               leading: GestureDetector(
                                 onTap: () {
-                                  // Navigate to the full-screen image view
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => FullScreenImage(
-                                        imageUrl: profilepicture.isNotEmpty
-                                            ? profilepicture
-                                            : 'assets/default_profile.png', // Use default image if null
+                                        imageUrl: profilePicture.isNotEmpty
+                                            ? profilePicture
+                                            : 'assets/default_profile.png',
                                       ),
                                     ),
                                   );
                                 },
                                 child: CircleAvatar(
-                                  radius: _imageSize, // Dynamically change the size
-                                  backgroundImage: profilepicture.isNotEmpty
-                                      ? CachedNetworkImageProvider(profilepicture)
-                                      : const AssetImage('assets/default_profile.png') as ImageProvider,
+                                  radius: _imageSize,
+                                  backgroundImage: profilePicture.isNotEmpty
+                                      ? CachedNetworkImageProvider(profilePicture)
+                                      : const AssetImage('assets/default_profile.png'),
                                 ),
                               ),
                               title: Text(
-                                '${user['firstname']} ${user['lastname']}',
-                                style: GoogleFonts.dancingScript(
+                                '$firstName $lastName',
+                                style: GoogleFonts.montserrat(
                                   textStyle: TextStyle(
-                                    fontStyle: FontStyle.italic, // Make the text slanted
-                                    fontSize: 25,  // Adjust the font size as needed
+                                    fontSize: 18,
                                   ),
                                 ),
+                              ),
+                              subtitle: FutureBuilder<Map<String, dynamic>>(
+                                future: getLastMessageForUser(inboxId),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return const Text('Loading...');
+                                  } else if (snapshot.hasError) {
+                                    return Text('Error: ${snapshot.error}');
+                                  } else if (!snapshot.hasData || snapshot.data!['message'].isEmpty) {
+                                    return const Text('No messages yet');
+                                  } else {
+                                    final lastMessage = snapshot.data!['message'];
+                                    final timestamp = snapshot.data!['createdAt'];
+                                    final formattedTime = formatTimestamp(timestamp);
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(lastMessage),
+                                        Text(
+                                          formattedTime,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                },
                               ),
                             ),
                           ),
@@ -158,12 +249,12 @@ class _ChatsState extends State<Chats> {
             MaterialPageRoute(
               builder: (context) => ContactsScreen(
                 myUserId: widget.myUserId,
-                jwtToken: widget.jwtToken, // Pass jwtToken here as well
+                jwtToken: widget.jwtToken,
               ),
             ),
           );
         },
-        backgroundColor: const Color.fromARGB(255, 255, 136, 0),
+        backgroundColor: const Color.fromARGB(80, 255, 4, 4),
         child: const FaIcon(FontAwesomeIcons.users),
       ),
     );

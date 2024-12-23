@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:unima_dating_hub/posts/create_post_page.dart';
 import 'package:animated_text_kit/animated_text_kit.dart'; // Import AnimatedTextKit
 import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
+import 'package:unima_dating_hub/confessions/main_confession_page.dart';
 
 class FarmSmartScreen extends StatefulWidget {
   @override
@@ -146,13 +147,13 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
               children: [
                 Text(
                   "UNIMA DATES", // Text to display
-                  style: GoogleFonts.dancingScript(
+                  style: GoogleFonts.montserrat(
                     textStyle: TextStyle(
                       foreground: Paint()
                         ..shader = LinearGradient(
                           colors: [
-                            const Color.fromARGB(255, 253, 107, 102),
-                            Colors.orange
+                            Colors.pink,
+                            Colors.red
                           ],
                         ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
                       fontStyle: FontStyle.italic, // Italic font style
@@ -264,7 +265,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
                 Chats(myUserId: currentUserId,jwtToken: jwt_token,),
                 const SizedBox.shrink(),
                 ContactsScreen(myUserId: currentUserId,jwtToken: jwt_token,),
-                PreferencesScreen(),
+                AnonymousConfessionPage(jwtToken: jwt_token, currentUserId: int.tryParse(currentUserId)??0 , currentEmail: currentUserEmail),
               ],
             ),
           ),
@@ -307,8 +308,8 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
             label: "Friends",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: "Preferences",
+            icon: Icon(Icons.masks),
+            label: "confessions",
           ),
         ],
       ),

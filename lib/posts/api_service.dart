@@ -18,7 +18,6 @@ class ApiService {
         },
       );
 
-      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -27,7 +26,6 @@ class ApiService {
         throw Exception('Failed to load posts. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching posts: $e');
       throw Exception('Failed to load posts');
     }
   }
@@ -43,7 +41,6 @@ class ApiService {
         },
       );
 
-      print('Response Body for user $userId: ${response.body}');
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -52,7 +49,6 @@ class ApiService {
         throw Exception('Failed to load posts for user $userId. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching posts by user: $e');
       throw Exception('Failed to load posts by user');
     }
   }
@@ -68,7 +64,6 @@ class ApiService {
         },
       );
 
-      print('Response Body for post $postId: ${response.body}');
 
       if (response.statusCode == 200) {
         return Post.fromJson(jsonDecode(response.body));
@@ -76,7 +71,6 @@ class ApiService {
         throw Exception('Failed to load post by ID $postId. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching post by ID: $e');
       throw Exception('Failed to load post');
     }
   }
@@ -92,7 +86,6 @@ class ApiService {
         },
       );
 
-      print('Response Body for comments of post $postId: ${response.body}');
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -101,7 +94,6 @@ class ApiService {
         throw Exception('Failed to load comments for post $postId. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching comments for post $postId: $e');
       throw Exception('Failed to load comments');
     }
   }
@@ -122,7 +114,6 @@ class ApiService {
         }),
       );
 
-      print('Response Body for creating comment: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return;
@@ -130,7 +121,6 @@ class ApiService {
         throw Exception('Failed to add comment. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error adding comment: $e');
       throw Exception('Failed to add comment');
     }
   }

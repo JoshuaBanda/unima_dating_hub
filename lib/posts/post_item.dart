@@ -198,7 +198,7 @@ class _PostItemState extends State<PostItem> {
               IconButton(
                 icon: Icon(
                   Icons.thumb_up,
-                  color: isLiked ? Colors.deepOrange : Colors.grey,
+                  color: isLiked ? Colors.redAccent : Colors.grey,
                 ),
                 onPressed: () {
                   setState(() {
@@ -209,7 +209,7 @@ class _PostItemState extends State<PostItem> {
               IconButton(
                 icon: Icon(
                   Icons.comment,
-                  color: Colors.deepOrange,
+                  color: Colors.redAccent,
                 ),
                 onPressed: () {
                   showDialog(

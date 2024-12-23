@@ -14,6 +14,7 @@ class UserDetails extends StatefulWidget {
 
 class _UserDetailsState extends State<UserDetails> {
   late User _user;
+  
 
   Future<void> _loadUser() async{
     final currentUserApiService=CurrentUserApiService();

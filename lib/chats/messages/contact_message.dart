@@ -4,15 +4,16 @@
   import 'package:socket_io_client/socket_io_client.dart' as IO;
   import '/repository/chat_repository.dart';
   import 'package:cached_network_image/cached_network_image.dart'; // Import CachedNetworkImageProvider
+  import 'package:audioplayers/audioplayers.dart';
 
-  class Chills extends StatefulWidget {
+  class ContactMessage extends StatefulWidget {
     final String userId;
     final String myUserId;
     final String firstName;
     final String lastName;
     final String profilePicture;
 
-    const Chills({
+    const ContactMessage({
       super.key,
       required this.userId,
       required this.myUserId,
@@ -22,10 +23,10 @@
     });
 
     @override
-    State<Chills> createState() => _ChillsState();
+    State<ContactMessage> createState() => _ContactMessageState();
   }
 
-  class _ChillsState extends State<Chills> {
+  class _ContactMessageState extends State<ContactMessage> {
     late ChatRepository chatRepository;
     late IO.Socket socket;
 
@@ -36,6 +37,8 @@
     bool isSending = false;
     String inboxId = "";
     final ScrollController _scrollController = ScrollController();
+    final audioPlayer = AudioPlayer();
+    
 
     // New variable to track message sending status
     Map<String, bool> sendingStatus = {};
@@ -43,6 +46,8 @@
     @override
     void initState() {
       super.initState();
+
+
       chatRepository =
           ChatRepository(apiUrl: 'https://datehubbackend.onrender.com');
       thisChatInboxFuture = _fetchCommonInboxData();
@@ -74,10 +79,23 @@
             currentMessages.add(data['data']); // Add new message at the bottom
             _sortMessagesByDate(); // Ensure messages are sorted after adding
             _scrollToBottom(); // Scroll to bottom after receiving new message
+
+             _playNotificationSound('sounds/message_received.mp3');
+             
+          chatRepository.saveReceivedMessage(inboxId, data['data']);
+
           }
         });
       });
     }
+
+     Future<void> _playNotificationSound(String soundPath) async {
+    try {
+      await audioPlayer.play(AssetSource(soundPath));
+    } catch (e) {
+      print('Error playing sound: $e');
+    }
+  }
 
     // Fetching inbox data and messages
     Future<Map<String, dynamic>> _fetchCommonInboxData() async {
@@ -131,6 +149,8 @@
         setState(() {
           sendingStatus[messageId] = true;
         });
+
+        _playNotificationSound('sounds/message_sent.mp3');
       } catch (error) {
         print('Error sending message: $error');
         ScaffoldMessenger.of(context)

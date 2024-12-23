@@ -4,6 +4,8 @@ import '/localDataBase/local_database.dart'; // Import the LocalDatabase class
 
 class ChatRepository {
   final String apiUrl;
+  // Cache for the last message for each inbox
+  Map<String, Map<String, dynamic>> _lastMessageCache = {};
 
   ChatRepository({required this.apiUrl});
 
@@ -15,6 +17,7 @@ class ChatRepository {
           '$apiUrl/inboxparticipants/currentinbox/$userId/$myUserId'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        
         if (data.isNotEmpty) {
           return {'inboxid': data['inboxid']};
         } else {
@@ -34,7 +37,6 @@ class ChatRepository {
       // First, check local database for messages
       List<Map<String, dynamic>> localMessages =
           await LocalDatabase.getMessages(inboxId);
-      print("Fetched messages from local storage: $localMessages");
 
       // If messages exist in local storage, return them
       if (localMessages.isNotEmpty) {
@@ -46,7 +48,6 @@ class ChatRepository {
           await http.get(Uri.parse('$apiUrl/message/$inboxId/message'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print("Fetched messages from server: $data");
         return data.isNotEmpty ? data : [];
       } else {
         throw Exception('Failed to load messages');
@@ -54,6 +55,36 @@ class ChatRepository {
     } catch (e) {
       throw Exception('Error fetching messages: $e');
     }
+  }
+
+  // Fetch the last message from either local storage or server
+  Future<Map<String, dynamic>> getLastMessage(String inboxId) async {
+    // Check if the last message is already in cache
+    if (_lastMessageCache.containsKey(inboxId)) {
+      return _lastMessageCache[inboxId]!;
+    }
+
+    // Check local database for the last message
+    final lastMessage = await LocalDatabase.getLastMessage(inboxId);
+    if (lastMessage != null) {
+      _updateLastMessageCache(inboxId, lastMessage);
+      return lastMessage;
+    }
+
+    // Fetch all messages from the server
+    final messages = await fetchMessages(inboxId);
+    if (messages.isNotEmpty) {
+      _updateLastMessageCache(inboxId, messages.last);
+      return messages.last;
+    }
+
+    // Return an empty map if no messages exist
+    return {};
+  }
+
+  // Save the last message to the cache
+  void _updateLastMessageCache(String inboxId, Map<String, dynamic> message) {
+    _lastMessageCache[inboxId] = message;
   }
 
   // Send a new message
@@ -77,7 +108,6 @@ class ChatRepository {
       if (response.statusCode == 200 || response.statusCode == 201) {
         // If the message is sent successfully to the server, store it locally
         await LocalDatabase.saveMessage(inboxId, userId, messageText);
-        print("Message saved locally: $messageText"); // Log to confirm saving
       } else {
         throw Exception('Failed to send message');
       }
@@ -98,6 +128,18 @@ class ChatRepository {
       }
     } catch (e) {
       throw Exception('Error fetching users: $e');
+    }
+  }
+
+
+  
+
+  // Save received message to the local database
+  Future<void> saveReceivedMessage(String inboxId, Map<String, dynamic> message) async {
+    try {
+      // Save the message to the local database
+      await LocalDatabase.saveMessage(inboxId, message['userid'], message['message']);
+    } catch (e) {
     }
   }
 }

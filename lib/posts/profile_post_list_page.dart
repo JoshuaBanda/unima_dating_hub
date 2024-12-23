@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'post/post.dart';
-import 'comments/comments.dart';
 import 'api_service.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'post_item.dart';
