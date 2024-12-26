@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart'; // For MediaType
 import 'package:flutter_spinkit/flutter_spinkit.dart'; // Import SpinKit
-import 'dart:convert';  // To decode the response
 
 class CreatePostPage extends StatefulWidget {
   final String userId;  // Expecting userId to be passed as String
@@ -79,7 +78,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           // Parse the response body
-          final Map<String, dynamic> responseMap = jsonDecode(responseBody);
 
           // Show success message with the post details
           ScaffoldMessenger.of(context).showSnackBar(

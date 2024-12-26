@@ -5,20 +5,17 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '/home/home.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'preferences.dart';
 
-class UserCharacteristicsPage extends StatefulWidget {
-  final String userId; // Added userId as a parameter to the constructor
+class Preferences extends StatefulWidget {
+  final String userId;  // Added userId as a parameter to the constructor
 
-  UserCharacteristicsPage(
-      {required this.userId}); // Constructor to accept userId
+  Preferences({required this.userId}); // Constructor to accept userId
 
   @override
-  _UserCharacteristicsPageState createState() =>
-      _UserCharacteristicsPageState();
+  _PreferencesState createState() => _PreferencesState();
 }
 
-class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
+class _PreferencesState extends State<Preferences> {
   final _formKey = GlobalKey<FormState>();
 
   // Define controllers for each form field
@@ -28,8 +25,7 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
   final TextEditingController _skinColorController = TextEditingController();
   final TextEditingController _hobbyController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _programOfStudyController =
-      TextEditingController();
+  final TextEditingController _programOfStudyController = TextEditingController();
   final TextEditingController _yearOfStudyController = TextEditingController();
 
   // Date formatting for DOB
@@ -46,22 +42,6 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
   // Flag for loading state
   bool _isLoading = false;
 
-  int convert(String? value) {
-    if (value == '1') {
-      return 1;
-    }
-    if (value == '2') {
-      return 2;
-    }
-    if (value == '3') {
-      return 3;
-    }
-    if (value == '4') {
-      return 4;
-    } else
-      return 0;
-  }
-
   @override
   void dispose() {
     _dobController.dispose();
@@ -76,13 +56,11 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
   }
 
   // Function to send data to the backend
-  Future<void> _sendDataToBackend(
-      Map<String, dynamic> userCharacteristics) async {
-    const String apiUrl =
-        'https://datehubbackend.onrender.com/user-characteristics/create'; // Replace with your backend API URL
+  Future<void> _sendDataToBackend(Map<String, dynamic> userCharacteristics) async {
+    const String apiUrl = 'https://datehubbackend.onrender.com/preferences'; // Replace with your backend API URL
 
     setState(() {
-      _isLoading = true; // Show loading indicator
+      _isLoading = true;  // Show loading indicator
     });
 
     try {
@@ -95,18 +73,20 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
       );
 
       setState(() {
-        _isLoading = false; // Hide loading indicator
+        _isLoading = false;  // Hide loading indicator
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Successfully sent data
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Characteristics saved successfully!')),
+          SnackBar(content: Text('Preferences saved successfully!')),
         );
         Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => Preferences(userId: widget.userId)),
-        );
+            context,
+            MaterialPageRoute(
+              builder: (context) => FarmSmartScreen()
+            ),
+          );
       } else {
         // Handle error
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +95,7 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
       }
     } catch (e) {
       setState(() {
-        _isLoading = false; // Hide loading indicator
+        _isLoading = false;  // Hide loading indicator
       });
 
       // Handle error
@@ -131,14 +111,14 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
       // Gather all the data from the form
       final userCharacteristics = {
         'user_id': widget.userId, // Include the userId from the widget
-        'dob': _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : null,
-        'sex': _sexController.text,
-        'height': int.parse(_heightController.text),
-        'skin_color': _skinColorController.text,
-        'hobby': _hobbyController.text,
-        'location': _isOtherLocation ? _locationController.text : _location,
-        'program_of_study': _programOfStudy,
-        'year_of_study': convert(_yearOfStudy),
+        'preferred_dob': _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : null,
+        'preferred_sex': _sexController.text,
+        'preferred_height': int.parse(_heightController.text),
+        'preferred_skin_color': _skinColorController.text,
+        'preferred_hobby': _hobbyController.text,
+        'preferred_location': _isOtherLocation ? _locationController.text : _location,
+        'preferred_program_of_study': _programOfStudy,
+        'preferred_year_of_study': _yearOfStudy,
       };
 
       // Send data to backend
@@ -169,15 +149,12 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         title: Text(
-          "Fill in your bio profile",
+          "Fill in your preference type",
           style: GoogleFonts.raleway(
             textStyle: TextStyle(
               foreground: Paint()
                 ..shader = LinearGradient(
-                  colors: [
-                    const Color.fromARGB(255, 253, 107, 102),
-                    Colors.pink
-                  ],
+                  colors: [const Color.fromARGB(255, 253, 107, 102), Colors.pink],
                 ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
               fontSize: 20,
             ),
@@ -186,6 +163,7 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+        
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -224,9 +202,7 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: DropdownButtonFormField<String>(
-                    value: _sexController.text.isNotEmpty
-                        ? _sexController.text
-                        : null,
+                    value: _sexController.text.isNotEmpty ? _sexController.text : null,
                     onChanged: (value) {
                       setState(() {
                         _sexController.text = value ?? '';
@@ -257,52 +233,45 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                 ),
 
                 // Height (Dropdown)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: DropdownButtonFormField<String>(
-                    value: _heightController.text.isNotEmpty
-                        ? _heightController.text
-                        : null,
-                    onChanged: (value) {
-                      setState(() {
-                        _heightController.text = value ?? '';
-                      });
-                    },
-                    items: [
-                      DropdownMenuItem(
-                          child: Text("Short (100 cm)"), value: "100"),
-                      DropdownMenuItem(
-                          child: Text("Medium (150 cm)"), value: "150"),
-                      DropdownMenuItem(
-                          child: Text("Tall (200 cm)"), value: "200"),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Height',
-                      filled: true,
-                      fillColor: Colors.white,
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.pink),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.red),
-                      ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: DropdownButtonFormField<String>(
+                  value: _heightController.text.isNotEmpty ? _heightController.text : null,
+                  onChanged: (value) {
+                    setState(() {
+                      _heightController.text = value ?? '';
+                    });
+                  },
+                  items: [
+                    DropdownMenuItem(child: Text("Short (100 cm)"), value: "100"),
+                    DropdownMenuItem(child: Text("Medium (150 cm)"), value: "150"),
+                    DropdownMenuItem(child: Text("Tall (200 cm)"), value: "200"),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Height',
+                    filled: true,
+                    fillColor: Colors.white,
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.pink),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select your height';
-                      }
-                      return null;
-                    },
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red),
+                    ),
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select your height';
+                    }
+                    return null;
+                  },
                 ),
+              ),
 
                 // Skin Color (Dropdown)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: DropdownButtonFormField<String>(
-                    value: _skinColorController.text.isNotEmpty
-                        ? _skinColorController.text
-                        : null,
+                    value: _skinColorController.text.isNotEmpty ? _skinColorController.text : null,
                     onChanged: (value) {
                       setState(() {
                         _skinColorController.text = value ?? '';
@@ -337,21 +306,17 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: DropdownButtonFormField<String>(
-                    value: _hobbyController.text.isNotEmpty
-                        ? _hobbyController.text
-                        : null,
+                    value: _hobbyController.text.isNotEmpty ? _hobbyController.text : null,
                     onChanged: (value) {
                       setState(() {
                         _hobbyController.text = value ?? '';
                       });
                     },
                     items: [
-                      DropdownMenuItem(
-                          child: Text("Reading"), value: "Reading"),
+                      DropdownMenuItem(child: Text("Reading"), value: "Reading"),
                       DropdownMenuItem(child: Text("Sports"), value: "Sports"),
                       DropdownMenuItem(child: Text("Music"), value: "Music"),
-                      DropdownMenuItem(
-                          child: Text("Travelling"), value: "Travelling"),
+                      DropdownMenuItem(child: Text("Travelling"), value: "Travelling"),
                     ],
                     decoration: InputDecoration(
                       labelText: 'Hobby',
@@ -392,10 +357,8 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                             });
                           },
                           items: [
-                            DropdownMenuItem(
-                                child: Text("Campus"), value: "Campus"),
-                            DropdownMenuItem(
-                                child: Text("Chikanda"), value: "Chikanda"),
+                            DropdownMenuItem(child: Text("Campus"), value: "Campus"),
+                            DropdownMenuItem(child: Text("Chikanda"), value: "Chikanda"),
                           ],
                           decoration: InputDecoration(
                             labelText: 'Location',
@@ -457,139 +420,48 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                       });
                     },
                     items: [
-                      DropdownMenuItem(
-                          child: Text("Information Systems"),
-                          value: "Bachelor of Science in Information Systems"),
-                      DropdownMenuItem(
-                          child: Text("Computer Science"),
-                          value: "Computer Science"),
-                      DropdownMenuItem(
-                          child: Text("Bsc Generic"),
-                          value: "Bachelor of Science Generic"),
-                      DropdownMenuItem(
-                          child: Text("Biology"),
-                          value: "Bachelor of Science in Biology"),
-                      DropdownMenuItem(
-                          child: Text("Com Net"),
-                          value:
-                              "Bachelor of Science in Computer Networking Engineering"),
-                      DropdownMenuItem(
-                          child: Text("Early Childhood Development"),
-                          value:
-                              "Bachelor of Science in Early Childhood Development"),
-                      DropdownMenuItem(
-                          child: Text("Electronics"),
-                          value: "Bachelor of Science in Electronics"),
-                      DropdownMenuItem(
-                          child: Text("Mathematics"),
-                          value: "Bachelor of Science in Mathematics"),
-                      DropdownMenuItem(
-                          child: Text("Physics"),
-                          value: "Bachelor of Science in Physics"),
-                      DropdownMenuItem(
-                          child: Text("Statistics"),
-                          value: "Bachelor of Science in Statistics"),
-                      DropdownMenuItem(
-                          child: Text("Geography"),
-                          value: "Bachelor of Science in Geography"),
-                      DropdownMenuItem(
-                          child: Text("Geology"),
-                          value: "Bachelor of Science in Geology"),
-                      DropdownMenuItem(
-                          child: Text("Food and Nutrition"),
-                          value: "Bachelor of Science in Food and Nutrition"),
-                      DropdownMenuItem(
-                          child: Text("Consumer Science"),
-                          value: "Bachelor of Science in Consumer Science"),
-                      DropdownMenuItem(
-                          child: Text("Actuarial Science"),
-                          value: "Bachelor of Science in Actuarial Science"),
-                      DropdownMenuItem(
-                          child: Text("Diploma in Statistics"),
-                          value: "Diploma in Statistics"),
-                      DropdownMenuItem(
-                          child: Text("Education in Biology Science"),
-                          value: "Bachelor of Education in Biology Science"),
-                      DropdownMenuItem(
-                          child: Text("Education in Chemistry"),
-                          value: "Bachelor of Education in Chemistry"),
-                      DropdownMenuItem(
-                          child: Text("Education in Computer Science"),
-                          value: "Bachelor of Education in Computer Science"),
-                      DropdownMenuItem(
-                          child: Text("Education in Ecology"),
-                          value: "Bachelor of Education in Ecology"),
-                      DropdownMenuItem(
-                          child: Text("Education in Language"),
-                          value: "Bachelor of Education in Language"),
-                      DropdownMenuItem(
-                          child: Text("Education in Mathematics"),
-                          value: "Bachelor of Education in Mathematics"),
-                      DropdownMenuItem(
-                          child: Text("Education in Physics"),
-                          value: "Bachelor of Education in Physics"),
-                      DropdownMenuItem(
-                          child: Text("Education in Social Studies"),
-                          value: "Bachelor of Education in Social Studies"),
-                      DropdownMenuItem(
-                          child: Text("Communication and Cultural Studies"),
-                          value:
-                              "Bachelor of Humanities in Communication and Cultural Studies"),
-                      DropdownMenuItem(
-                          child: Text("Humanities"),
-                          value: "Bachelor of Humanities in Humanities"),
-                      DropdownMenuItem(
-                          child: Text("Media for Development"),
-                          value:
-                              "Bachelor of Humanities in Media for Development"),
-                      DropdownMenuItem(
-                          child: Text("Theology"),
-                          value: "Bachelor of Humanities in Theology"),
-                      DropdownMenuItem(
-                          child: Text("Bachelor of Law"),
-                          value: "Bachelor of Law"),
-                      DropdownMenuItem(
-                          child: Text("Diploma in Law"),
-                          value: "Diploma in Law"),
-                      DropdownMenuItem(
-                          child: Text("Development Economics"),
-                          value: "Bachelor of Arts in Development Economics"),
-                      DropdownMenuItem(
-                          child: Text("Sociology"),
-                          value: "Bachelor of Arts in Sociology"),
-                      DropdownMenuItem(
-                          child: Text("Psychology"),
-                          value: "Bachelor of Arts in Psychology"),
-                      DropdownMenuItem(
-                          child: Text("Social Economic History"),
-                          value: "Bachelor of Arts in Social Economic History"),
-                      DropdownMenuItem(
-                          child: Text("Gender Studies"),
-                          value:
-                              "Bachelor of Social Science in Gender Studies"),
-                      DropdownMenuItem(
-                          child: Text("Social Work"),
-                          value: "Bachelor of Social Science in Social Work"),
-                      DropdownMenuItem(
-                          child: Text("Social Science"),
-                          value: "Bachelor of Social Science"),
-                      DropdownMenuItem(
-                          child: Text("Public Administration"),
-                          value: "Bachelor of Arts in Public Administration"),
-                      DropdownMenuItem(
-                          child: Text("Political Science"),
-                          value: "Bachelor of Arts in Political Science"),
-                      DropdownMenuItem(
-                          child: Text("Human Resource Management"),
-                          value:
-                              "Bachelor of Arts in Human Resource Management"),
-                      DropdownMenuItem(
-                          child: Text("Economics"),
-                          value: "Bachelor of Arts in Economics"),
-                      DropdownMenuItem(
-                          child: Text("Law Enforcement"),
-                          value:
-                              "Bachelor of Social Science in Law Enforcement Management and Leadership"),
+                    DropdownMenuItem(child: Text("Information Systems"), value: "Bachelor of Science in Information Systems"),
+                    DropdownMenuItem(child: Text("Computer Science"), value: "Computer Science"),
+                    DropdownMenuItem(child: Text("Bsc Generic"), value: "Bachelor of Science Generic"),
+                    DropdownMenuItem(child: Text("Biology"), value: "Bachelor of Science in Biology"),
+                    DropdownMenuItem(child: Text("Com Net"), value: "Bachelor of Science in Computer Networking Engineering"),
+                    DropdownMenuItem(child: Text("Early Childhood Development"), value: "Bachelor of Science in Early Childhood Development"),
+                    DropdownMenuItem(child: Text("Electronics"), value: "Bachelor of Science in Electronics"),
+                    DropdownMenuItem(child: Text("Mathematics"), value: "Bachelor of Science in Mathematics"),
+                    DropdownMenuItem(child: Text("Physics"), value: "Bachelor of Science in Physics"),
+                    DropdownMenuItem(child: Text("Statistics"), value: "Bachelor of Science in Statistics"),
+                    DropdownMenuItem(child: Text("Geography"), value: "Bachelor of Science in Geography"),
+                    DropdownMenuItem(child: Text("Geology"), value: "Bachelor of Science in Geology"),
+                    DropdownMenuItem(child: Text("Food and Nutrition"), value: "Bachelor of Science in Food and Nutrition"),
+                    DropdownMenuItem(child: Text("Consumer Science"), value: "Bachelor of Science in Consumer Science"),
+                    DropdownMenuItem(child: Text("Actuarial Science"), value: "Bachelor of Science in Actuarial Science"),
+                    DropdownMenuItem(child: Text("Diploma in Statistics"), value: "Diploma in Statistics"),
+                    DropdownMenuItem(child: Text("Education in Biology Science"), value: "Bachelor of Education in Biology Science"),
+                    DropdownMenuItem(child: Text("Education in Chemistry"), value: "Bachelor of Education in Chemistry"),
+                    DropdownMenuItem(child: Text("Education in Computer Science"), value: "Bachelor of Education in Computer Science"),
+                    DropdownMenuItem(child: Text("Education in Ecology"), value: "Bachelor of Education in Ecology"),
+                    DropdownMenuItem(child: Text("Education in Language"), value: "Bachelor of Education in Language"),
+                    DropdownMenuItem(child: Text("Education in Mathematics"), value: "Bachelor of Education in Mathematics"),
+                    DropdownMenuItem(child: Text("Education in Physics"), value: "Bachelor of Education in Physics"),
+                    DropdownMenuItem(child: Text("Education in Social Studies"), value: "Bachelor of Education in Social Studies"),
+                    DropdownMenuItem(child: Text("Communication and Cultural Studies"), value: "Bachelor of Humanities in Communication and Cultural Studies"),
+                    DropdownMenuItem(child: Text("Humanities"), value: "Bachelor of Humanities in Humanities"),
+                    DropdownMenuItem(child: Text("Media for Development"), value: "Bachelor of Humanities in Media for Development"),
+                    DropdownMenuItem(child: Text("Theology"), value: "Bachelor of Humanities in Theology"),
+                    DropdownMenuItem(child: Text("Bachelor of Law"), value: "Bachelor of Law"),
+                    DropdownMenuItem(child: Text("Diploma in Law"), value: "Diploma in Law"),
+                    DropdownMenuItem(child: Text("Development Economics"), value: "Bachelor of Arts in Development Economics"),
+                    DropdownMenuItem(child: Text("Sociology"), value: "Bachelor of Arts in Sociology"),
+                    DropdownMenuItem(child: Text("Psychology"), value: "Bachelor of Arts in Psychology"),
+                    DropdownMenuItem(child: Text("Social Economic History"), value: "Bachelor of Arts in Social Economic History"),
+                    DropdownMenuItem(child: Text("Gender Studies"), value: "Bachelor of Social Science in Gender Studies"),
+                    DropdownMenuItem(child: Text("Social Work"), value: "Bachelor of Social Science in Social Work"),
+                    DropdownMenuItem(child: Text("Social Science"), value: "Bachelor of Social Science"),
+                    DropdownMenuItem(child: Text("Public Administration"), value: "Bachelor of Arts in Public Administration"),
+                    DropdownMenuItem(child: Text("Political Science"), value: "Bachelor of Arts in Political Science"),
+                    DropdownMenuItem(child: Text("Human Resource Management"), value: "Bachelor of Arts in Human Resource Management"),
+                    DropdownMenuItem(child: Text("Economics"), value: "Bachelor of Arts in Economics"),
+                    DropdownMenuItem(child: Text("Law Enforcement"), value: "Bachelor of Social Science in Law Enforcement Management and Leadership"),
                     ],
                     decoration: InputDecoration(
                       labelText: 'Program of Study',
@@ -651,15 +523,12 @@ class _UserCharacteristicsPageState extends State<UserCharacteristicsPage> {
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: _isLoading
-                      ? const SpinKitFadingCircle(
-                          color: Colors.grey, size: 50.0)
+                      ? const SpinKitFadingCircle(color: Colors.grey, size: 50.0)
                       : ElevatedButton(
                           onPressed: _submitForm,
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 15, horizontal: 25),
-                            backgroundColor:
-                                const Color.fromARGB(255, 255, 60, 0),
+                            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+                            backgroundColor: const Color.fromARGB(255, 255, 60, 0),
                           ),
                           child: Text(
                             'Submit',

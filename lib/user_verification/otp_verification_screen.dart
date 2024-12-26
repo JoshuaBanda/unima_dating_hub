@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:async';  // Import Timer for countdown
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';  // Import Flutter Secure Storage
+import 'dart:async'; // Import Timer for countdown
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import Flutter Secure Storage
+import 'package:flutter_spinkit/flutter_spinkit.dart'; // Import the spin kit package
 import '/user_verification/sign_up.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';  // Import the spin kit package
 import '/users/user_characteristics/user_characteristics_page.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
-  final String currentUserId;
-  final String currentUserEmail;
+  final String firstname;
+  final String lastname;
+  final String password;
 
   const OtpVerificationScreen({
     super.key,
     required this.email,
-    required this.currentUserId,
-    required this.currentUserEmail,
+    required this.firstname,
+    required this.lastname,
+    required this.password,
   });
 
   @override
@@ -27,13 +29,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final TextEditingController _otpController = TextEditingController();
   String _message = "";
   late DateTime _otpSentTime;
-  bool _isLoading = false;  // To control spinner visibility
+  bool _isLoading = false; // To control spinner visibility
   late Timer _timer;
-  Duration _remainingTime = const Duration(minutes: 10);  // 10 minutes countdown
+  Duration _remainingTime = const Duration(minutes: 10); // 10 minutes countdown
 
   static const String baseUrl = "https://datehubbackend.onrender.com";
   final Uri verifyOtpUrl = Uri.parse('$baseUrl/users/otp/verify');
-  final Uri resendOtpUrl = Uri.parse('$baseUrl/users/otp/send');
+  final Uri createUserUrl = Uri.parse('$baseUrl/users/createuser'); // Endpoint to create user
 
   // Initialize FlutterSecureStorage
   final FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -60,7 +62,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  // Verify OTP
+  // Verify OTP and then create the user if successful
   Future<void> verifyOtp(String email, String otp) async {
     if (otp.isEmpty || otp.length != 6 || int.tryParse(otp) == null) {
       setState(() {
@@ -70,7 +72,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
 
     setState(() {
-      _isLoading = true;  // Show spinner while waiting for response
+      _isLoading = true; // Show spinner while waiting for response
     });
 
     try {
@@ -80,43 +82,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         body: jsonEncode({'email': email, 'otp': otp}),
       );
 
-      // Log status code and response for debugging
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-
-        // Ensure this line works properly
-        final bool activationStatus = responseData['activationstatus'];
-
-        if (activationStatus) {
-          // Extract other user details from response
-          final String userId = responseData['userid'].toString();
-          final String userEmail = responseData['email'];
-          final String firstName = responseData['firstname'];
-          final String lastName = responseData['lastname'];
-          final String profilePicture = responseData['profilepicture'];
-          
-          // Store user data in secure storage
-          await _storage.write(key: 'userid', value: userId);
-          await _storage.write(key: 'email', value: userEmail);
-          await _storage.write(key: 'firstname', value: firstName);
-          await _storage.write(key: 'lastname', value: lastName);
-          await _storage.write(key: 'profilepicture', value: profilePicture);
-
-          // Navigate to FarmSmartScreen and pass the required fields
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>UserCharacteristicsPage(userId: widget.currentUserId),
-            ),
-          );
-        } else {
-          setState(() {
-            _message = "Your account is not activated yet. Please contact support.";
-          });
-        }
+        // OTP verification successful, proceed with creating the user
+        await createUser(email);
       } else {
         setState(() {
           _message = "Invalid OTP. Please try again.";
@@ -124,69 +92,83 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
     } catch (e) {
       setState(() {
-        _message = "Error: Unable to verify OTP. Please check your internet connection.";
+        _message =
+            "Error: Unable to verify OTP. Please check your internet connection.";
       });
     } finally {
       setState(() {
-        _isLoading = false;  // Hide spinner after the response is received
+        _isLoading = false; // Hide spinner after the response is received
       });
     }
   }
 
-  // Check if OTP can be resent
-  bool canResendOtp() {
-    return _remainingTime.inSeconds <= 0;
-  }
-
-  // Resend OTP
-  Future<void> resendOtp() async {
-    if (!canResendOtp()) {
-      setState(() {
-        _message = "You can resend OTP after ${_getFormattedTime(_remainingTime)}.";
-      });
-      return;
-    }
+  // Create the user after OTP verification
+  Future<void> createUser(String email) async {
+    String firstName = widget.firstname;
+    String lastName = widget.lastname;
+    String password = widget.password;
 
     setState(() {
-      _message = "Resending OTP...";  // Show message when resending OTP
-      _isLoading = true;  // Show spinner
+      _isLoading = true; // Show spinner while creating user
+      _message = ''; // Clear any previous messages
     });
 
     try {
       final response = await http.post(
-        resendOtpUrl,
+        createUserUrl,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': widget.email}),
+        body: jsonEncode({
+          'email': email,
+          'firstname': firstName,
+          'lastname': lastName,
+          "profilepicture":"default_profile.png",
+          'password': password,
+        }),
       );
 
-      if (response.statusCode == 200) {
+      // Debugging: Print the response status code and body
+      print('Response Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+        String userId = responseData['user']['userid'].toString();
+        String email = responseData['user']['email'];
+        String firstName = responseData['user']['firstname'];
+        String lastName = responseData['user']['lastname'];
+        String accessToken = responseData['access_token'];
+
+        // Store user details and access token in secure storage
+        await _storage.write(key: 'userid', value: userId);
+        await _storage.write(key: 'email', value: email);
+        await _storage.write(key: 'firstname', value: firstName);
+        await _storage.write(key: 'lastname', value: lastName);
+        await _storage.write(key: 'jwt_token', value: accessToken);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserCharacteristicsPage(userId: userId),
+          ),
+        );
+      }
+
+       else {
         setState(() {
-          _message = "OTP resent successfully! Check your email.";
-          _otpSentTime = DateTime.now();  // Reset OTP sent time
-          _remainingTime = const Duration(minutes: 10);  // Reset countdown
-        });
-      } else {
-        setState(() {
-          _message = "Failed to resend OTP. Please try again.";
+          _message = "Failed to create user. Please try again.";
         });
       }
     } catch (e) {
+      print('Error creating user: $e'); // Debugging error
       setState(() {
-        _message = "Error: Unable to resend OTP. Please check your internet connection.";
+        _message =
+            "Error: Unable to create user. Please check your internet connection.";
       });
     } finally {
       setState(() {
-        _isLoading = false;  // Hide spinner after response
+        _isLoading = false; // Hide spinner after user creation response
       });
     }
-  }
-
-  // Navigate back to the sign-up screen
-  void navigateBackToRequestScreen() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const SignUpPage()),
-    );
   }
 
   // Format remaining time for OTP resend
@@ -198,7 +180,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();  // Don't forget to cancel the timer
+    _timer.cancel(); // Don't forget to cancel the timer
     super.dispose();
   }
 
@@ -208,88 +190,79 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 50),
-              Text(
-                'Enter the OTP sent to your email:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _otpController,
-                decoration: InputDecoration(
-                  labelText: 'OTP',
-                  hintText: 'Enter OTP',
-                  labelStyle: TextStyle(color: Colors.green.shade700),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.red),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.red),
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _isLoading ? null : () => verifyOtp(widget.email, _otpController.text.trim()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: _isLoading
-                    ? const SpinKitFadingCircle(color: Colors.grey, size: 30.0)  // Use SpinKit spinner
-                    : const Text('Verify OTP', style: TextStyle(fontSize: 16, color: Colors.white)),
-              ),
-              const SizedBox(height: 20),
-              if (_message.isNotEmpty)
+      body: Center(
+        // Center the content of the screen
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Countdown timer text in the center
                 Text(
-                  _message,
+                  'OTP expires in: ${_getFormattedTime(_remainingTime)}',
                   style: TextStyle(
-                    fontSize: 16,
-                    color: _message.startsWith('Error') || _message.startsWith('Invalid')
-                        ? Colors.red.shade700
-                        : Colors.green.shade700,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
                   ),
                 ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: resendOtp,
-                child: Text(
-                  canResendOtp()
-                      ? 'Resend OTP'
-                      : "Resend available in ${_getFormattedTime(_remainingTime)}",
-                  style: TextStyle(
-                    color: Colors.blue.shade700,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 30),
+
+                // OTP Input
+                TextField(
+                  controller: _otpController,
+                  decoration: InputDecoration(
+                    labelText: 'OTP',
+                    hintText: 'Enter OTP',
+                    labelStyle: TextStyle(color: Colors.green.shade700),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red),
+                    ),
                   ),
+                  keyboardType: TextInputType.number,
                 ),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: navigateBackToRequestScreen,
-                child: Text(
-                  'Wrong email? Go back and try again.',
-                  style: TextStyle(
-                    color: Colors.grey[900],
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(height: 20),
+
+                // Verify OTP Button
+                ElevatedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () =>
+                          verifyOtp(widget.email, _otpController.text.trim()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14, horizontal: 20),
+                    minimumSize: const Size(double.infinity, 50),
                   ),
+                  child: _isLoading
+                      ? const SpinKitFadingCircle(
+                          color: Colors.grey, size: 30.0) // Use SpinKit spinner
+                      : const Text('Verify OTP',
+                          style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+
+                // Message text
+                if (_message.isNotEmpty)
+                  Text(
+                    _message,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _message.startsWith('Error') ||
+                              _message.startsWith('Invalid')
+                          ? Colors.red.shade700
+                          : Colors.green.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

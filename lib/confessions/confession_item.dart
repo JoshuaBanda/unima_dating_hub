@@ -6,7 +6,6 @@ import 'package:intl/intl.dart'; // Import for date formatting
 import 'connfession/confession.dart';
 import 'comment_dialog.dart';
 import 'package:unima_dating_hub/chats/full_screen_image_page.dart';
-import 'package:unima_dating_hub/chats/profile_page.dart';
 import 'report_page.dart';
 import 'confession_photo_full_page.dart';
 

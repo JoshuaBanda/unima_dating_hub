@@ -29,6 +29,12 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+    dependencies {
+    // Add these if they are missing
+        implementation 'com.google.errorprone:error_prone_annotations:2.36.0' // required by flutter_secure_storage
+        implementation 'com.github.spotbugs:spotbugs-annotations:4.8.6' // required by flutter_secure_storage
+    }
+
 
     buildTypes {
         release {

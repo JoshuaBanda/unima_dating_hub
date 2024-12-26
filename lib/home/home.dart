@@ -3,7 +3,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:unima_dating_hub/chats/contacts_screen.dart';
 import 'HomeScreen.dart'; // Import HomeScreen
 import 'search_page.dart';
-import 'preferneces.dart';
 import '/chats/chats.dart';
 import '/user_verification/Login_SignUp.dart';
 import '/users/profile_page.dart';
@@ -12,6 +11,7 @@ import 'package:unima_dating_hub/posts/create_post_page.dart';
 import 'package:animated_text_kit/animated_text_kit.dart'; // Import AnimatedTextKit
 import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
 import 'package:unima_dating_hub/confessions/main_confession_page.dart';
+import 'package:unima_dating_hub/settings/settings.dart';
 
 class FarmSmartScreen extends StatefulWidget {
   @override
@@ -119,8 +119,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UpdateFieldPage(
-            userId: currentUserId), // Replace NewPage with your actual page widget
+        builder: (context) => SettingsPage(currentUserId: currentUserId)
       ),
     );
   }
@@ -166,7 +165,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
                 AnimatedTextKit(
                   animatedTexts: [
                     TyperAnimatedText(
-                      "Find Love and have fun",
+                      "Get your match",
                       textStyle: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -182,7 +181,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
                       ),
                     ),
                   ],
-                  totalRepeatCount: 5, // Repeat the animation a few times
+                  totalRepeatCount: 2, // Repeat the animation a few times
                   pause: Duration(
                       milliseconds: 500), // Pause between animation loops
                 ),

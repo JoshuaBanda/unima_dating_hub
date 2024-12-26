@@ -3,23 +3,24 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class MyProfilePage extends StatefulWidget {
   final String currentUserId;
   final String currentUserEmail;
-  final String firstName;  // Add firstName
-  final String lastName;   // Add lastName
-  final String profilePicture; // Add profilePicture
-  final bool activationStatus; // Add activationStatus
+  String firstName;  // Made mutable (non-final)
+  String lastName;   // Made mutable (non-final)
+  String profilePicture;
+  final bool activationStatus;
 
-  const MyProfilePage({
+  MyProfilePage({
     super.key,
     required this.currentUserId,
     required this.currentUserEmail,
-    required this.firstName,  // Expect firstName in the constructor
-    required this.lastName,   // Expect lastName in the constructor
-    required this.profilePicture, // Expect profilePicture in the constructor
-    required this.activationStatus, // Expect activationStatus in the constructor
+    required this.firstName,
+    required this.lastName,
+    required this.profilePicture,
+    required this.activationStatus,
   });
 
   @override
@@ -28,60 +29,103 @@ class MyProfilePage extends StatefulWidget {
 
 class _MyProfilePageState extends State<MyProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  String firstName = '';
-  String lastName = '';
   String profilePictureUrl = '';
   File? _imageFile;
   bool _isSubmitting = false;
+  bool _isEditingFirstName = false;
+  bool _isEditingLastName = false;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
-    _getProfileData();
+    _initializeProfileData();
   }
 
-  // Fetch user profile data using the current user ID
-  Future<void> _getProfileData() async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://datehubbackend.onrender.com/users/${widget.currentUserId}'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          profilePictureUrl = data['profilepicture'] ?? 'default_image_url';
-          _firstNameController.text = data['firstname'];
-          _lastNameController.text = data['lastname'];
-        });
-      } else {
-        _showError('Failed to load profile data');
-      }
-    } catch (e) {
-      _showError('An error occurred while fetching profile data');
-    }
+  void _initializeProfileData() {
+    profilePictureUrl = widget.profilePicture;
+    _firstNameController.text = widget.firstName;
+    _lastNameController.text = widget.lastName;
   }
 
-  // Show error messages in a SnackBar
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
-  // Pick an image from gallery
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
       });
+      _updateProfilePicture();
     }
   }
 
-  // Update the profile field (first name/last name)
+  Future<void> _takePhoto() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      _updateProfilePicture();
+    }
+  }
+
+  Future<void> _updateProfilePicture() async {
+    if (_imageFile == null) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final uri = Uri.parse('https://datehubbackend.onrender.com/cloudinary/upload');
+    var request = http.MultipartRequest('POST', uri);
+    request.fields['email'] = widget.currentUserEmail;
+
+    try {
+      if (await _imageFile!.exists()) {
+        var file = await http.MultipartFile.fromPath('file', _imageFile!.path);
+        request.files.add(file);
+
+        var response = await request.send();
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated successfully')),
+
+          );
+
+          setState(() {
+            profilePictureUrl = _imageFile!.path;
+          });
+
+          await _storage.delete(key: 'profilepicture');
+          await _storage.write(key: 'profilepicture', value: profilePictureUrl);
+        } else {
+          _showError('Failed to update profile picture');
+        }
+      } else {
+        _showError('Image file does not exist.');
+      }
+    } catch (e) {
+      _showError('An error occurred: $e');
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
   Future<void> _updateProfileField(String url, String fieldName, String fieldValue) async {
     setState(() {
       _isSubmitting = true;
@@ -97,52 +141,23 @@ class _MyProfilePageState extends State<MyProfilePage> {
         }),
       );
 
-      setState(() {
-        _isSubmitting = false;
-      });
-
       if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$fieldName updated successfully')));
-        _getProfileData(); // Reload profile after update
+        await _storage.delete(key: fieldName);
+        await _storage.write(key: fieldName, value: fieldValue);
+
+        setState(() {
+          if (fieldName == 'firstname') {
+            widget.firstName = fieldValue;  // Update firstName
+          } else if (fieldName == 'lastname') {
+            widget.lastName = fieldValue;  // Update lastName
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$fieldName updated successfully')),
+        );
       } else {
         _showError('Failed to update $fieldName');
-      }
-    } catch (e) {
-      setState(() {
-        _isSubmitting = false;
-      });
-      _showError('An error occurred: $e');
-    }
-  }
-
-  // Update the profile picture
-  Future<void> _updateProfilePicture() async {
-    if (_imageFile == null) return; // No image selected
-
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    final uri = Uri.parse('https://datehubbackend.onrender.com/cloudinary/upload');
-    var request = http.MultipartRequest('POST', uri);
-    request.fields['email'] = widget.currentUserEmail; // Add the email field
-
-    try {
-      // Check if the image file exists before uploading
-      if (await _imageFile!.exists()) {
-        var file = await http.MultipartFile.fromPath('file', _imageFile!.path);
-        request.files.add(file);
-
-        var response = await request.send();
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully')));
-          _getProfileData(); // Reload profile after picture update
-        } else {
-          _showError('Failed to update profile picture');
-        }
-      } else {
-        _showError('Image file does not exist.');
       }
     } catch (e) {
       _showError('An error occurred: $e');
@@ -164,35 +179,21 @@ class _MyProfilePageState extends State<MyProfilePage> {
           child: ListView(
             children: [
               GestureDetector(
-                onTap: _pickImage,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 100,
-                      backgroundImage: _imageFile == null
-                          ? NetworkImage(profilePictureUrl)
-                          : FileImage(_imageFile!) as ImageProvider,
-                      child: _imageFile == null
-                          ? const Icon(Icons.add_a_photo, size: 30, color: Colors.white)
-                          : null,
-                    ),
-                    if (_imageFile != null)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.save, color: Colors.green, size: 28),
-                          onPressed: _isSubmitting ? null : _updateProfilePicture,
-                        ),
-                      ),
-                  ],
+                onTap: _showProfileOptions,
+                child: CircleAvatar(
+                  radius: 100,
+                  backgroundImage: _imageFile == null
+                      ? NetworkImage(profilePictureUrl)
+                      : FileImage(_imageFile!) as ImageProvider,
+                  child: _isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : null,
                 ),
               ),
+              const SizedBox(height: 24),
+              _buildTextField('First Name', _firstNameController, 'firstname', _isEditingFirstName),
               const SizedBox(height: 16),
-              _buildTextField('First Name', _firstNameController, 'firstname'),
-              const SizedBox(height: 16),
-              _buildTextField('Last Name', _lastNameController, 'lastname'),
+              _buildTextField('Last Name', _lastNameController, 'lastname', _isEditingLastName),
             ],
           ),
         ),
@@ -200,28 +201,94 @@ class _MyProfilePageState extends State<MyProfilePage> {
     );
   }
 
-  // Helper function to build text fields
-  Widget _buildTextField(String label, TextEditingController controller, String fieldName) {
+  void _showProfileOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildProfileOption(Icons.visibility, 'View Profile Picture', _viewProfilePicture),
+          _buildProfileOption(Icons.camera_alt, 'Take Photo', _takePhoto),
+          _buildProfileOption(Icons.image, 'Choose from Gallery', _pickImage),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileOption(IconData icon, String text, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blue),
+      title: Text(text),
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+    );
+  }
+
+  void _viewProfilePicture() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('Profile Picture')),
+          body: Center(
+            child: Image.network(profilePictureUrl),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, String fieldName, bool isEditing) {
     return Row(
       children: [
         Expanded(
-          child: TextFormField(
-            controller: controller,
-            decoration: InputDecoration(labelText: label),
-            validator: (value) => value!.isEmpty ? 'Please enter your $label' : null,
-          ),
+          child: isEditing
+              ? TextFormField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: label,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                  validator: (value) => value!.isEmpty ? 'Please enter your $label' : null,
+                )
+              : Text(
+                  controller.text,
+                  style: TextStyle(fontSize: 16),
+                ),
         ),
         IconButton(
-          icon: const Icon(Icons.save),
+          icon: Icon(isEditing ? Icons.save : Icons.edit),
           onPressed: _isSubmitting
               ? null
               : () {
-                  if (_formKey.currentState!.validate()) {
-                    if (fieldName == 'firstname') {
-                      _updateProfileField('https://datehubbackend.onrender.com/users/updatefirstname', fieldName, controller.text);
-                    } else if (fieldName == 'lastname') {
-                      _updateProfileField('https://datehubbackend.onrender.com/users/updatelastname', fieldName, controller.text);
+                  if (isEditing) {
+                    if (_formKey.currentState!.validate()) {
+                      _updateProfileField(
+                        'https://datehubbackend.onrender.com/users/update$fieldName',
+                        fieldName,
+                        controller.text,
+                      );
+                      setState(() {
+                        if (fieldName == 'firstname') {
+                          _isEditingFirstName = false;
+                        } else {
+                          _isEditingLastName = false;
+                        }
+                      });
                     }
+                  } else {
+                    setState(() {
+                      if (fieldName == 'firstname') {
+                        _isEditingFirstName = true;
+                      } else {
+                        _isEditingLastName = true;
+                      }
+                    });
                   }
                 },
         ),

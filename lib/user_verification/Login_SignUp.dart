@@ -169,7 +169,7 @@ class _LoginPageState extends State<LoginPage> {
                             },
                             child: Text(
                               'Sign Up',
-                              style: TextStyle(color: Colors.green[700]),
+                              style: TextStyle(color: Colors.grey[900]),
                             ),
                           ),
                         ],

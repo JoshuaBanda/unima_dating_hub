@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:unima_dating_hub/posts/profile_post_list_page.dart'; // Import your ProfilePostListPage widget
+import '/posts/profile_post_list_page.dart'; // Import your ProfilePostListPage widget
 import 'messages/contact_message.dart';
 
 class ProfilePage extends StatefulWidget {

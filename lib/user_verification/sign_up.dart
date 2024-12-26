@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'Login_SignUp.dart'; // Import LoginPage
 import 'otp_request_screen.dart'; // Import OTP request screen
+import 'Login_SignUp.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -22,12 +19,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false; // State for loading indicator
   String _errorMessage = '';
-
-  // Secure storage instance to store JWT
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-
-  // API endpoint for registration
-  final String _apiUrl = 'https://datehubbackend.onrender.com/users/createuser'; // Replace with your actual API URL
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +37,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 const SizedBox(height: 20),
                 Text(
                   "Create a new account",
-                  style: TextStyle(fontSize: screenWidth * 0.05,color: Colors.red),
+                  style: TextStyle(fontSize: screenWidth * 0.05, color: Colors.red),
                 ),
                 const SizedBox(height: 50),
                 Form(
@@ -129,6 +120,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           const Text("Already have an account?"),
                           TextButton(
                             onPressed: () {
+                              // Navigate to Login page when clicked
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -176,6 +168,7 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  // Handle the Sign-Up process
   Future<void> _signUp() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
@@ -183,63 +176,28 @@ class _SignUpPageState extends State<SignUpPage> {
         _errorMessage = '';  // Reset error message
       });
 
-      try {
-        final response = await http.post(
-          Uri.parse(_apiUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'firstname': firstnameController.text.trim(),
-            'lastname': lastNameController.text.trim(),
-            'profilepicture': 'default.jpg',
-            'email': emailController.text.trim(),
-            'password': passwordController.text.trim(),
-          }),
-        );
+      // Assuming that the sign-up is successful without making an API request
+      // You can directly pass the values to the OTP screen here
 
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          final responseData = jsonDecode(response.body);
-          final user = responseData['user'];
-          final String token = responseData['access_token'];
-          final String userId = user['userid'].toString();
-          final String userEmail = user['email'];
+      // Simulate a successful sign-up (you can remove this part if you're connecting to a backend)
+      await Future.delayed(const Duration(seconds: 2));
 
-          await _storage.write(key: 'jwt_token', value: token);
+      setState(() {
+        _isLoading = false;  // Hide spinner
+      });
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OtpRequestScreen(
-                email: userEmail,
-                currentUserId: userId,
-                currentUserEmail: userEmail,
-              ),
-            ),
-          );
-        } else {
-          final Map<String, dynamic> responseData = jsonDecode(response.body);
-          setState(() {
-            _errorMessage = responseData['message'] ?? 'Failed to create account.';
-          });
-        }
-      } catch (e) {
-        if (e is http.ClientException) {
-          setState(() {
-            _errorMessage = 'No internet connection. Please try again later.';
-          });
-        } else if (e is TimeoutException) {
-          setState(() {
-            _errorMessage = 'Request timed out. Please try again later.';
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'An unexpected error occurred.';
-          });
-        }
-      } finally {
-        setState(() {
-          _isLoading = false;  // Hide spinner after request completes
-        });
-      }
+      // After successful "sign-up", pass values to OTP screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpRequestScreen(
+            email: emailController.text.trim(),
+            firstName: firstnameController.text.trim(),
+            lastName: lastNameController.text.trim(),
+            password: passwordController.text.trim(),
+          ),
+        ),
+      );
     }
   }
 }

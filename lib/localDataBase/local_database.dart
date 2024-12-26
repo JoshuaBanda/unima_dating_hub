@@ -49,11 +49,11 @@ class LocalDatabase {
   );
   
   // After inserting, check if the message is properly stored
-  final insertedMessages = await db.query(
-    'messages',
-    where: 'inboxid = ? COLLATE NOCASE',
-    whereArgs: [inboxId.toLowerCase()],
-  );
+  //final insertedMessages = await db.query(
+    //'messages',
+    //where: 'inboxid = ? COLLATE NOCASE',
+    //whereArgs: [inboxId.toLowerCase()],
+  //);
   
  // print("Inserted messages: $insertedMessages");
 }

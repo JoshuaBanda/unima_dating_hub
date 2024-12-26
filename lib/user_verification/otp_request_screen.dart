@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async'; // Import for TimeoutException
 import 'otp_verification_screen.dart';  // Import the OTP verification screen
 
 class OtpRequestScreen extends StatefulWidget {
   final String email; // Receive the email from the previous screen
-  final String currentUserId; // Add currentUserId
-  final String currentUserEmail; // Add currentUserEmail
+  final String firstName; // Accept first name
+  final String lastName; // Accept last name
+  final String password; // Accept password
 
   const OtpRequestScreen({
     super.key, 
     required this.email, 
-    required this.currentUserId,  // Accept currentUserId
-    required this.currentUserEmail, // Accept currentUserEmail
+    required this.firstName, // Accept firstName
+    required this.lastName, // Accept lastName
+    required this.password, // Accept password
   });
 
   @override
@@ -29,16 +32,20 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
     sendOtp(widget.email);
   }
 
-  // Send OTP function
+  // Send OTP function with timeout increased to 60 seconds
   Future<void> sendOtp(String email) async {
     try {
       final response = await http.post(
         Uri.parse('https://datehubbackend.onrender.com/users/otp/send'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
-      );
+      ).timeout(const Duration(seconds: 60)); // Increased timeout to 60 seconds
 
-      if (response.statusCode == 200 || response.statusCode == 2001) {
+      // Print the response for debugging
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
           _message = "An OTP has been successfully sent to $email. Please check your inbox!";
         });
@@ -49,31 +56,24 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
           MaterialPageRoute(
             builder: (context) => OtpVerificationScreen(
               email: email,
-              currentUserId: widget.currentUserId,  // Use widget.currentUserId
-              currentUserEmail: widget.currentUserEmail,  // Use widget.currentUserEmail
+              firstname: widget.firstName,  // Pass first name
+              lastname: widget.lastName,  // Pass last name
+              password: widget.password,  // Pass password
             ),
           ),
         );
       } else {
         setState(() {
-          _message = "Failed to send OTP.";
+          _message = "Failed to send OTP. Please try again.";
         });
-
-        // Navigate to OTP verification screen after failed OTP request
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OtpVerificationScreen(
-              email: email,
-              currentUserId: widget.currentUserId,  // Use widget.currentUserId
-              currentUserEmail: widget.currentUserEmail,  // Use widget.currentUserEmail
-            ),
-          ),
-        );
       }
     } catch (e) {
       setState(() {
-        _message = "Error: $e";
+        if (e is TimeoutException) {
+          _message = "Request timed out. Please try again later.";
+        } else {
+          _message = "Error: $e";
+        }
       });
     }
   }
@@ -81,34 +81,53 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),  // Adjusted vertical padding
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'This will not take much time!!!',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black54, // Standard text color
+      backgroundColor: Colors.grey[100],  // Set background color
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),  // Adjusted vertical padding
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15.0), // Rounded corners
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: Offset(0, 4), // Shadow effect
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                // Display the email passed from the previous screen
-                'A verification OTP has been sent to ${widget.email}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[700], // Email display color
-                ),
-              ),
-              const SizedBox(height: 20),
-              _message.isNotEmpty
-                  ? Text(
+              ],
+            ),
+            padding: const EdgeInsets.all(20.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  const Text(
+                    'This will not take much time!!!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black54, // Standard text color
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'A verification OTP has been sent to ${widget.email}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700], // Email display color
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_message.isNotEmpty)
+                    Text(
                       _message,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
                         color: _message.startsWith('Error') || _message.startsWith('Failed')
@@ -116,9 +135,11 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                             : Colors.green,  // Success message in green
                         fontWeight: FontWeight.w500,
                       ),
-                    )
-                  : Container(), // If no message, display nothing
-            ],
+                    ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
         ),
       ),

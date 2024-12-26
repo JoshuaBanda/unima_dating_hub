@@ -5,7 +5,7 @@ import 'user_verification/Login_SignUp.dart';
 import 'home/home.dart';
 import 'posts/post_list.dart';
 import 'users/user_characteristics/user_characteristics_page.dart';
-import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
+import '/users/user_characteristics/update_user_characteristics_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
