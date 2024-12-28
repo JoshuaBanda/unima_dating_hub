@@ -67,7 +67,7 @@ class _ConfessionItemState extends State<ConfessionItem> {
 
   @override
   Widget build(BuildContext context) {
-    String profileImage = "https://res.cloudinary.com/dfahzd3ky/image/upload/v1734981920/farmsmart/theater-mask-red-curtain_23-2150062785.jpg.jpg";
+    String profileImage = "https://res.cloudinary.com/dfahzd3ky/image/upload/v1734980866/farmsmart/mask.jpg.jpg";
 
     bool isValidUrl = profileImage.startsWith('http://') ||
         profileImage.startsWith('https://');

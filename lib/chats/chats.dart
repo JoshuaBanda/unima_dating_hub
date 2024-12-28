@@ -70,33 +70,33 @@ class _ChatsState extends State<Chats> {
 
   // Format the timestamp to a 12-hour time format
   String formatTimestamp(String timestamp) {
-  if (timestamp.isEmpty || timestamp == 'No timestamp available') {
-    debugPrint("Timestamp is empty");
-    return 'No timestamp available';
+    if (timestamp.isEmpty || timestamp == 'No timestamp available') {
+      debugPrint("Timestamp is empty");
+      return 'No timestamp available';
+    }
+
+    try {
+      // Ensure the timestamp has 'T' separating date and time (if lowercase 't', replace with uppercase 'T')
+      final String timestampLower = timestamp.toLowerCase(); // Convert to lowercase if needed
+      final String correctedTimestamp = timestampLower.replaceAll('t', 'T'); // Fix lowercase 't'
+
+      // Remove milliseconds from the timestamp if they are included (optional)
+      final trimmedTimestamp = correctedTimestamp.split('.')[0];  // Keep only the date and time part
+
+
+      final DateTime dateTime = DateTime.parse(trimmedTimestamp);
+
+      // Extract and format the time into 12-hour format
+      final DateFormat timeFormatter = DateFormat('hh:mm a'); // 12-hour format with AM/PM
+      final String formattedTime = timeFormatter.format(dateTime);
+
+
+      return formattedTime;
+    } catch (e) {
+      debugPrint('Error formatting timestamp: $e');
+      return 'Invalid time format';
+    }
   }
-
-  try {
-    // Ensure the timestamp has 'T' separating date and time (if lowercase 't', replace with uppercase 'T')
-    final String timestampLower = timestamp.toLowerCase(); // Convert to lowercase if needed
-    final String correctedTimestamp = timestampLower.replaceAll('t', 'T'); // Fix lowercase 't'
-
-    // Remove milliseconds from the timestamp if they are included (optional)
-    final trimmedTimestamp = correctedTimestamp.split('.')[0];  // Keep only the date and time part
-
-
-    final DateTime dateTime = DateTime.parse(trimmedTimestamp);
-
-    // Extract and format the time into 12-hour format
-    final DateFormat timeFormatter = DateFormat('hh:mm a'); // 12-hour format with AM/PM
-    final String formattedTime = timeFormatter.format(dateTime);
-
-
-    return formattedTime;
-  } catch (e) {
-    debugPrint('Error formatting timestamp: $e');
-    return 'Invalid time format';
-  }
-}
 
   // Method to fetch the last message for a user
   Future<Map<String, dynamic>> getLastMessageForUser(String inboxId) async {
@@ -140,6 +140,17 @@ class _ChatsState extends State<Chats> {
         ),
       ),
     );
+  }
+
+  // Handle message types (text, image, file)
+  Widget _getMessageIcon(String message) {
+    if (message.contains('image')) {
+      return Icon(Icons.image, color: Colors.blue);
+    } else if (message.contains('file')) {
+      return Icon(Icons.attach_file, color: Colors.green);
+    } else {
+      return Icon(Icons.textsms, color: Colors.grey);
+    }
   }
 
   @override
@@ -197,7 +208,7 @@ class _ChatsState extends State<Chats> {
                                   radius: _imageSize,
                                   backgroundImage: profilePicture.isNotEmpty
                                       ? CachedNetworkImageProvider(profilePicture)
-                                      : const AssetImage('assets/default_profile.png'),
+                                      : const AssetImage('assets/default_profile.png') as ImageProvider,
                                 ),
                               ),
                               title: Text(
@@ -212,7 +223,13 @@ class _ChatsState extends State<Chats> {
                                 future: getLastMessageForUser(inboxId),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const Text('Loading...');
+                                    return Row(
+                                      children: [
+                                        const SpinKitCircle(color: Colors.grey),
+                                        const SizedBox(width: 10),
+                                        const Text('Loading...'),
+                                      ],
+                                    );
                                   } else if (snapshot.hasError) {
                                     return Text('Error: ${snapshot.error}');
                                   } else if (!snapshot.hasData || snapshot.data!['message'].isEmpty) {
@@ -224,7 +241,13 @@ class _ChatsState extends State<Chats> {
                                     return Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(lastMessage),
+                                        Row(
+                                          children: [
+                                            _getMessageIcon(lastMessage),
+                                            const SizedBox(width: 10),
+                                            Text(lastMessage),
+                                          ],
+                                        ),
                                         Text(
                                           formattedTime,
                                           style: TextStyle(

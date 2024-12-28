@@ -10,14 +10,11 @@ class ChatRepository {
   ChatRepository({required this.apiUrl});
 
   // Fetch inbox data for a user
-  Future<Map<String, dynamic>> fetchInboxData(
-      String userId, String myUserId) async {
+  Future<Map<String, dynamic>> fetchInboxData(String userId, String myUserId) async {
     try {
-      final response = await http.get(Uri.parse(
-          '$apiUrl/inboxparticipants/currentinbox/$userId/$myUserId'));
+      final response = await http.get(Uri.parse('$apiUrl/inboxparticipants/currentinbox/$userId/$myUserId'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
         if (data.isNotEmpty) {
           return {'inboxid': data['inboxid']};
         } else {
@@ -35,8 +32,7 @@ class ChatRepository {
   Future<List<dynamic>> fetchMessages(String inboxId) async {
     try {
       // First, check local database for messages
-      List<Map<String, dynamic>> localMessages =
-          await LocalDatabase.getMessages(inboxId);
+      List<Map<String, dynamic>> localMessages = await LocalDatabase.getMessages(inboxId);
 
       // If messages exist in local storage, return them
       if (localMessages.isNotEmpty) {
@@ -44,8 +40,8 @@ class ChatRepository {
       }
 
       // If no messages in local storage, fetch from server
-      final response =
-          await http.get(Uri.parse('$apiUrl/message/$inboxId/message'));
+      final response = await http.get(Uri.parse('$apiUrl/message/$inboxId/messageS'));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data.isNotEmpty ? data : [];
@@ -53,6 +49,7 @@ class ChatRepository {
         throw Exception('Failed to load messages');
       }
     } catch (e) {
+      print("Error fetching messages: $e");
       throw Exception('Error fetching messages: $e');
     }
   }
@@ -88,8 +85,7 @@ class ChatRepository {
   }
 
   // Send a new message
-  Future<void> sendMessage(
-      String inboxId, String userId, String messageText) async {
+  Future<void> sendMessage(String inboxId, String userId, String messageText) async {
     try {
       final requestData = {
         'inboxid': inboxId,
@@ -119,8 +115,7 @@ class ChatRepository {
   // Fetch users from the API
   Future<List<dynamic>> fetchUsers(String userId) async {
     try {
-      final response =
-          await http.get(Uri.parse('$apiUrl/inboxparticipants/$userId/chat'));
+      final response = await http.get(Uri.parse('$apiUrl/inboxparticipants/$userId/chat'));
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
@@ -131,15 +126,76 @@ class ChatRepository {
     }
   }
 
-
-  
-
   // Save received message to the local database
   Future<void> saveReceivedMessage(String inboxId, Map<String, dynamic> message) async {
     try {
       // Save the message to the local database
       await LocalDatabase.saveMessage(inboxId, message['userid'], message['message']);
     } catch (e) {
+      print("Error saving received message: $e");
+    }
+  }
+
+  // Handle incoming messages from SSE
+  void handleSseMessage(Map<String, dynamic> message, List<String> activeInboxIds) {
+    try {
+      String inboxId = message['inboxid'].toString();
+
+      // Debugging: Log the incoming message
+      print("SSE Message Received: $message");
+
+      // Check if the message belongs to any of the active inboxes
+      if (activeInboxIds.contains(inboxId)) {
+        // Debugging: Log if message matches active inbox
+        print("Message belongs to an active inbox: $inboxId");
+        // Save the incoming message to local storage
+        saveReceivedMessage(inboxId, message);
+      } else {
+        print('Message does not belong to any of the active inboxes: $inboxId');
+      }
+    } catch (e) {
+      print("Error handling SSE message: $e");
+    }
+  }
+
+  // Function to listen to SSE (Server-Sent Events) and save new messages to the local database
+  Future<void> listenToSse(List<String> activeInboxIds) async {
+    try {
+      final uri = Uri.parse('$apiUrl/message/events');
+      print("Initiating SSE connection to: $uri"); // Debugging line
+
+      final client = http.Client();
+      final request = http.Request('GET', uri);
+
+      final streamedResponse = await client.send(request);
+
+      // Check if the connection was successful
+      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+        print("SSE connection established successfully.");
+        final eventStream = streamedResponse.stream;
+
+        await for (var chunk in eventStream) {
+          String chunkString = utf8.decode(chunk);
+          print("Received chunk: $chunkString"); // Debugging line
+
+          List<String> events = chunkString.split('\n');
+          for (var event in events) {
+            if (event.isNotEmpty) {
+              try {
+                final message = json.decode(event);
+                print("Processing event: $message"); // Debugging line
+                handleSseMessage(message, activeInboxIds);
+              } catch (e) {
+                print("Error decoding event: $e");
+              }
+            }
+          }
+        }
+      } else {
+        print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+      }
+    } catch (e) {
+      print("Error listening to SSE: $e");
     }
   }
 }

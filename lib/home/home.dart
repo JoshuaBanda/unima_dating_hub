@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import for SystemNavigator
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:unima_dating_hub/chats/contacts_screen.dart';
 import 'HomeScreen.dart'; // Import HomeScreen
 import 'search_page.dart';
@@ -12,6 +14,7 @@ import 'package:animated_text_kit/animated_text_kit.dart'; // Import AnimatedTex
 import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
 import 'package:unima_dating_hub/confessions/main_confession_page.dart';
 import 'package:unima_dating_hub/settings/settings.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class FarmSmartScreen extends StatefulWidget {
   @override
@@ -20,6 +23,7 @@ class FarmSmartScreen extends StatefulWidget {
 
 class _FarmSmartScreenState extends State<FarmSmartScreen> {
   int _currentIndex = 0; // Track the current index for BottomNavigationBar
+  DateTime? _lastPressedAt;
 
   // User Data fetched from FlutterSecureStorage
   String currentUserId = '';
@@ -97,7 +101,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
         PopupMenuItem(
           value: 'navigate', // Add this item for navigation
           child: Text(
-            'Edit bio', // The option text
+            'settings', // The option text
             style: TextStyle(color: Colors.black),
           ),
         ),
@@ -122,6 +126,32 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
         builder: (context) => SettingsPage(currentUserId: currentUserId)
       ),
     );
+  }
+
+  // This function handles the back button press logic
+  Future<bool> _onWillPop() async {
+    // If the user is in the home screen, we check if they pressed back twice
+    if (_currentIndex == 0) {
+      if (_lastPressedAt == null ||
+          DateTime.now().difference(_lastPressedAt!) > Duration(seconds: 2)) {
+        // User pressed back once, show a message to press again to exit
+        _lastPressedAt = DateTime.now();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Press back again to exit'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return false; // Prevent exiting
+      }
+      return true; // Exit the app if pressed back again within 2 seconds
+    }
+
+    // If user is not on the home screen, pop to home
+    setState(() {
+      _currentIndex = 0; // Switch to home screen
+    });
+    return false; // Prevent normal back action
   }
 
   @override
@@ -193,124 +223,127 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
     }
 
     // If data is loaded, display the actual content
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          "$firstName $lastName",
-          style: GoogleFonts.dancingScript(
-            textStyle: TextStyle(
-              color: Colors.red,
-              fontStyle: FontStyle.italic,
-              fontSize: 28,
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SearchPage(),
-                ),
-              );
-            },
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MyProfilePage(
-                    currentUserId: currentUserId,
-                    currentUserEmail: currentUserEmail,
-                    firstName: firstName,
-                    lastName: lastName,
-                    profilePicture: profilePicture,
-                    activationStatus: activationStatus,
-                  ),
-                ),
-              );
-            },
-            child: CircleAvatar(
-              radius: 20,
-              backgroundImage: NetworkImage(profilePicture),
-              backgroundColor: Colors.grey[300],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-            onPressed: _onMenuPressed,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          const Divider(height: 1, color: Colors.grey, thickness: 1),
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                // Pass the currentUserEmail and jwtToken to HomeScreen as required
-                HomeScreen(
-                  currentUserId: currentUserId.isNotEmpty
-                      ? int.tryParse(currentUserId) ?? 0
-                      : 0, // Safely parse or default to 0
-                  currentEmail: currentUserEmail, // Pass currentUserEmail
-                  jwtToken: jwt_token,  // Pass jwtToken here
-                ),
-                Chats(myUserId: currentUserId,jwtToken: jwt_token,),
-                const SizedBox.shrink(),
-                ContactsScreen(myUserId: currentUserId,jwtToken: jwt_token,),
-                AnonymousConfessionPage(jwtToken: jwt_token, currentUserId: int.tryParse(currentUserId)??0 , currentEmail: currentUserEmail),
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 239, 237, 237),
-        selectedItemColor: Colors.red,
-        unselectedItemColor: Colors.grey[800],
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CreatePostPage(userId: currentUserId),
+    return WillPopScope(
+      onWillPop: _onWillPop, // Intercept the back button press
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: Text(
+            "$firstName $lastName",
+            style: GoogleFonts.dancingScript(
+              textStyle: TextStyle(
+                color: Colors.red,
+                fontStyle: FontStyle.italic,
+                fontSize: 28,
               ),
-            );
-          } else {
-            setState(() {
-              _currentIndex = index;
-            });
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: "Chats",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle, size: 30),
-            label: "Add Post",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: "Friends",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.masks),
-            label: "confessions",
-          ),
-        ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search, color: Colors.black),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SearchPage(),
+                  ),
+                );
+              },
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MyProfilePage(
+                      currentUserId: currentUserId,
+                      currentUserEmail: currentUserEmail,
+                      firstName: firstName,
+                      lastName: lastName,
+                      profilePicture: profilePicture,
+                      activationStatus: activationStatus,
+                    ),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                radius: 20,
+                backgroundImage: NetworkImage(profilePicture),
+                backgroundColor: Colors.grey[300],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.more_vert, color: Colors.black),
+              onPressed: _onMenuPressed,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            const Divider(height: 1, color: Colors.grey, thickness: 1),
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  // Pass the currentUserEmail and jwtToken to HomeScreen as required
+                  HomeScreen(
+                    currentUserId: currentUserId.isNotEmpty
+                        ? int.tryParse(currentUserId) ?? 0
+                        : 0, // Safely parse or default to 0
+                    currentEmail: currentUserEmail, // Pass currentUserEmail
+                    jwtToken: jwt_token,  // Pass jwtToken here
+                  ),
+                  Chats(myUserId: currentUserId,jwtToken: jwt_token,),
+                  const SizedBox.shrink(),
+                  ContactsScreen(myUserId: currentUserId,jwtToken: jwt_token,),
+                  AnonymousConfessionPage(jwtToken: jwt_token, currentUserId: int.tryParse(currentUserId)??0 , currentEmail: currentUserEmail),
+                ],
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: const Color.fromARGB(255, 239, 237, 237),
+          selectedItemColor: Colors.red,
+          unselectedItemColor: Colors.grey[800],
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            if (index == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatePostPage(userId: currentUserId),
+                ),
+              );
+            } else {
+              setState(() {
+                _currentIndex = index;
+              });
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: "Home",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat),
+              label: "Chats",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle, size: 30),
+              label: "Add Post",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: "Friends",
+            ),
+            BottomNavigationBarItem(
+              icon: FaIcon(FontAwesomeIcons.masksTheater),
+              label: "confessions",
+            ),
+          ],
+        ),
       ),
     );
   }
