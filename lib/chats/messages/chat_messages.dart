@@ -186,7 +186,7 @@ Future<Map<String, dynamic>> _fetchCommonInboxData() async {
   String _formatTime(String dateString) {
     if (dateString.isEmpty) return ''; // Avoid null or empty date errors
     final date =
-        DateTime.parse(dateString).add(Duration(hours: 2)); // Add 2 hours
+        DateTime.parse(dateString);
     return DateFormat('hh:mm a').format(date); // Format to '12:30 PM'
   }
 

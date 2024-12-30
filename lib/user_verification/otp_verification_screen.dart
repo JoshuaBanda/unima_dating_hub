@@ -136,7 +136,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         String email = responseData['user']['email'];
         String firstName = responseData['user']['firstname'];
         String lastName = responseData['user']['lastname'];
-        String accessToken = responseData['access_token'];
+        String accessToken = responseData['access_token']['access_token'];
+
 
         // Store user details and access token in secure storage
         await _storage.write(key: 'userid', value: userId);

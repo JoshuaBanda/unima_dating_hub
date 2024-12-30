@@ -132,7 +132,7 @@ class ApiService {
         },
         body: jsonEncode({
           'confession_id': confessionId,
-          'comment': commentText,
+          'confession_comment': commentText,
           'user_id': userId,
         }),
       );

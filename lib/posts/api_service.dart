@@ -18,7 +18,7 @@ class ApiService {
           'Authorization': 'Bearer $jwtToken',
           'Content-Type': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -158,11 +158,11 @@ class ApiService {
   Future<String?> _refreshToken() async {
     try {
       String? email = await _storage.read(key: 'email');
-      String? password = await _storage.read(key: 'password'); // Assuming you saved the password
+      String? password = await _storage.read(key: 'password'); 
 
       if (email != null && password != null) {
         final response = await client.post(
-          Uri.parse('$baseUrl/auth/login'), // Assuming the login endpoint is used to get a new token
+          Uri.parse('$baseUrl/users/login'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email, 'password': password}),
         );

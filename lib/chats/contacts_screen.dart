@@ -24,7 +24,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   Future<List<dynamic>> fetchUsers() async {
     try {
       final response = await http
-          .get(Uri.parse('https://datehubbackend.onrender.com/users/allusers'));
+          .get(Uri.parse('https://datehubbackend.onrender.com/users/allusers')).timeout(const Duration(seconds: 120));
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {

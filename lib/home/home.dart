@@ -16,6 +16,12 @@ import 'package:unima_dating_hub/confessions/main_confession_page.dart';
 import 'package:unima_dating_hub/settings/settings.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+// Add a method to validate if the profile picture URL is valid
+bool isValidUrl(String url) {
+  final Uri? uri = Uri.tryParse(url);
+  return uri != null && uri.hasAbsolutePath && (uri.isScheme('http') || uri.isScheme('https'));
+}
+
 class FarmSmartScreen extends StatefulWidget {
   @override
   _FarmSmartScreenState createState() => _FarmSmartScreenState();
@@ -260,7 +266,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
                       currentUserEmail: currentUserEmail,
                       firstName: firstName,
                       lastName: lastName,
-                      profilePicture: profilePicture,
+                      profilePicture: isValidUrl(profilePicture) ? profilePicture : 'assets/default_profile.png', // Validate the URL
                       activationStatus: activationStatus,
                     ),
                   ),
@@ -268,7 +274,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
               },
               child: CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(profilePicture),
+                backgroundImage: isValidUrl(profilePicture) ? NetworkImage(profilePicture) : AssetImage('assets/default_profile.png') as ImageProvider, // Use default image if URL is invalid
                 backgroundColor: Colors.grey[300],
               ),
             ),

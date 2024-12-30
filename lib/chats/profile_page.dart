@@ -41,11 +41,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://datehubbackend.onrender.com/creatingnewconversation/startconva'),
+        Uri.parse(
+            'https://datehubbackend.onrender.com/creatingnewconversation/startconva'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestData),
       );
-
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
           creatingInbox = false;
@@ -69,29 +70,69 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           creatingInbox = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send friend request')));
+        ScaffoldMessenger.of(context).showSnackBar( SnackBar(
+            content: Text('You are already friends with ${widget.firstName}')));
       }
     } catch (e) {
       setState(() {
         creatingInbox = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
-  void openMessageScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ContactMessage(
-          userId: widget.secondUserId,
-          myUserId: widget.currentUserId,
-          firstName: widget.firstName,
-          lastName: widget.lastName,
-          profilePicture: widget.profilePicture,
-        ),
-      ),
-    );
+  void openMessageScreen() async {
+    setState(() {
+      creatingInbox = true;
+    });
+
+    final requestData = {
+      'firstuserid': int.parse(widget.currentUserId),
+      'seconduserid': int.parse(widget.secondUserId),
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://datehubbackend.onrender.com/creatingnewconversation/startconva'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201||response.statusCode==500) {
+        setState(() {
+          creatingInbox = false;
+        });
+        final inbox = json.decode(response.body);
+        if (inbox.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ContactMessage(
+                userId: widget.secondUserId,
+                myUserId: widget.currentUserId,
+                firstName: widget.firstName,
+                lastName: widget.lastName,
+                profilePicture: widget.profilePicture,
+              ),
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          creatingInbox = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to start conversation')));
+      }
+    } catch (e) {
+      setState(() {
+        creatingInbox = false;
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   @override
@@ -150,7 +191,8 @@ class _ProfilePageState extends State<ProfilePage> {
           Expanded(
             child: ProfilePostListPage(
               currentUserId: currentUserId,
-              currentEmail: widget.currentUserId, // Update if email is required here
+              currentEmail:
+                  widget.currentUserId, // Update if email is required here
               secondUserId: secondUserId,
               jwtToken: widget.jwtToken,
             ),
