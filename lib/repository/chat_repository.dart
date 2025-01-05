@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '/localDataBase/local_database.dart'; // Import the LocalDatabase class
+import 'package:unima_dating_hub/notifications/notification_service.dart';
 
 class ChatRepository {
   final String apiUrl;
@@ -141,30 +142,36 @@ void handleSseMessage(Map<String, dynamic> message, List<String> activeInboxIds,
   try {
     String inboxId = message['inboxid'].toString();
 
-    // Debugging: Log the incoming message
+    // Log incoming message for debugging
     print("SSE Message Received: $message");
 
     // Check if the message belongs to any of the active inboxes
     if (activeInboxIds.contains(inboxId)) {
       print("Message belongs to an active inbox: $inboxId");
 
-      // Check if the message sender is the current user (i.e., the user who sent the message)
+      // If the message is from the current user, don't save it
       if (message['userid'] == currentUserId) {
-        print("Message is from the current user (me), not saving it again.");
-        return;  // Don't save the message if it's from the current user
+        print("Message is from the current user, not saving it again.");
+        return;
       }
 
-      // Check if this message already exists in the local storage
+      // Check if the message exists in local storage
       bool messageExists = await _checkMessageExists(inboxId, message);
-      
+
       if (!messageExists) {
-        // Save the incoming message to local storage if it doesn't exist
+        // Save the message to the local database if it doesn't already exist
         await saveReceivedMessage(inboxId, message);
+
+        // Display the notification since it's a new message
+        NotificationService.showNotification(
+          'New Message',
+          message['message'] ?? 'No message content',
+        );
       } else {
         print("Message already exists in local storage, not saving.");
       }
     } else {
-      print('Message does not belong to any of the active inboxes: $inboxId');
+      print("Message does not belong to any active inbox: $inboxId");
     }
   } catch (e) {
     print("Error handling SSE message: $e");
