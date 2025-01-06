@@ -6,37 +6,88 @@ import 'home/home.dart';
 import 'posts/post_list.dart';
 import 'users/user_characteristics/user_characteristics_page.dart';
 import '/users/user_characteristics/update_user_characteristics_page.dart';
+import 'notifications/notification_service.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz_data;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final storage = FlutterSecureStorage();
+  // Initialize timezone data
+  tz_data.initializeTimeZones();  // Correct timezone initialization
 
-  // Check if JWT token, email, and user ID are stored
-  String? token = await storage.read(key: 'jwt_token');
-  String? email = await storage.read(key: 'email');
-  String? userId = await storage.read(key: 'userid');
+  // Initialize notifications
+  await NotificationService.initialize();  // Initialize Notification Service
 
-  // For now, we use hardcoded values for firstName, lastName, profilePicture, and activationStatus
-  String firstName = 'John'; // Example, you can replace this with real data
-  String lastName = 'Doe'; // Example, replace with actual data
-  String profilePicture = ''; // You may need to fetch this from storage or API
-  bool activationStatus =
-      true; // This should be retrieved from your API or storage
-
-  // If a valid token exists, navigate directly to the home page
-  runApp(MyApp(
-    isLoggedIn: token != null && email != null && userId != null,
-    userEmail: email,
-    userId: userId,
-    firstName: firstName,
-    lastName: lastName,
-    profilePicture: profilePicture,
-    activationStatus: activationStatus,
-    jwtToken: token ?? '',  // Pass the jwtToken here
+  runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: SplashScreen(),  // Start with Splash Screen
   ));
 }
 
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+  
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    final storage = FlutterSecureStorage();
+
+    try {
+      // Check if JWT token, email, and user ID are stored
+      String? token = await storage.read(key: 'jwt_token');
+      String? email = await storage.read(key: 'email');
+      String? userId = await storage.read(key: 'userid');
+
+      // For now, we use hardcoded values for firstName, lastName, profilePicture, and activationStatus
+      String firstName = 'John'; 
+      String lastName = 'Doe'; 
+      String profilePicture = ''; 
+      bool activationStatus = true;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MyApp(
+            isLoggedIn: token != null && email != null && userId != null,
+            userEmail: email,
+            userId: userId,
+            firstName: firstName,
+            lastName: lastName,
+            profilePicture: profilePicture,
+            activationStatus: activationStatus,
+            jwtToken: token ?? '',
+          ),
+        ),
+      );
+    } catch (e) {
+      print("Error during app initialization: $e");
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => ErrorScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+// Main App
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
   final String? userEmail;
@@ -45,7 +96,7 @@ class MyApp extends StatelessWidget {
   final String lastName;
   final String profilePicture;
   final bool activationStatus;
-  final String jwtToken; // Add the jwtToken parameter
+  final String jwtToken;
 
   const MyApp({
     super.key,
@@ -56,28 +107,42 @@ class MyApp extends StatelessWidget {
     required this.lastName,
     required this.profilePicture,
     required this.activationStatus,
-    required this.jwtToken,  // Receive jwtToken
+    required this.jwtToken,
   });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: NotificationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       initialRoute: isLoggedIn ? '/home' : '/landingpage',
       routes: {
         '/home': (context) => FarmSmartScreen(),
         '/login': (context) => const LoginPage(),
         '/landingpage': (context) => const LandingPage(),
-        '/land': (context) =>
-            PostListPage(
-              currentUserId: int.tryParse(userId ?? '0') ?? 0, 
-              currentEmail: userEmail ?? '', 
-              jwtToken: jwtToken), // Pass jwtToken here
-        
+        '/land': (context) => PostListPage(
+              currentUserId: int.tryParse(userId ?? '0') ?? 0,
+              currentEmail: userEmail ?? '',
+              jwtToken: jwtToken,
+            ),
         '/cr': (context) => UserCharacteristicsPage(userId: userId ?? '1'),
-        
         '/cr2': (context) => UpdateFieldPage(userId: userId ?? '1'),
       },
+    );
+  }
+}
+
+// Error screen in case of initialization failure
+class ErrorScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Text(
+          'Something went wrong during app initialization.',
+          style: TextStyle(fontSize: 20),
+        ),
+      ),
     );
   }
 }

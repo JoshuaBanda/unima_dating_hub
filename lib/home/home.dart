@@ -169,8 +169,8 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color.fromARGB(255, 255, 162, 156),
-                const Color.fromARGB(255, 255, 230, 193)
+                const Color.fromARGB(255, 255, 255, 255),
+                const Color.fromARGB(255, 238, 220, 218)
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
