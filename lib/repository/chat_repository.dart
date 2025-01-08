@@ -180,35 +180,28 @@ class ChatRepository {
   }
 }
 
-  void handleSseMessage(Map<String, dynamic> message,
-    List<String> activeInboxIds, String currentUserId) async {
+void handleSseMessage(
+  Map<String, dynamic> message,
+  List<String> activeInboxIds,
+  String currentUserId
+) async {
   try {
     String inboxId = message['inboxid'].toString();
+    print("Inbox ID: $inboxId");
 
-    // Log incoming message for debugging
-    print("SSE Message Received: $message");
-
-    // Check if the message belongs to any of the active inboxes
     if (activeInboxIds.contains(inboxId)) {
-      print("Message belongs to an active inbox: $inboxId");
+      print("Message belongs to an active inbox.");
 
-      // If the message is from the current user, don't save it
-      if (message['userid'] == currentUserId) {
-        print("Message is from the current user, not saving it again.");
-        return;
-      }
-
-      // Check if the message exists in local storage
+      // Now, instead of skipping messages from the current user, allow them to be saved
       bool messageExists = await _checkMessageExists(inboxId, message);
+      print("Message exists in local storage: $messageExists");
 
       if (!messageExists) {
-        // Save the message to the local database if it doesn't already exist
+        print("Message does not exist. Saving it.");
         await saveReceivedMessage(inboxId, message);
-
-        // Now, update the last message cache for the given inbox
         _updateLastMessageCache(inboxId, message);
 
-        // Fetch user information (first name, last name, and profile photo) for the sender
+        // Fetch user information (first name, last name, profile photo) for the sender
         List<dynamic> users = await ChatRepository.fetchUsersToMemory(currentUserId);
         Map<String, dynamic>? sender = users.firstWhere(
             (user) => user['userid'].toString() == message['userid'].toString(),
@@ -223,47 +216,46 @@ class ChatRepository {
         // If the sender is the current user, do not show notification
         if ((message['userid']).toString() == currentUserId) {
           print("Sender is the current user, not showing notification.");
-          return;
+        } else {
+          // If the message is not from the current user, show the notification
+          String senderName = '${sender['firstname']} ${sender['lastname']}';
+          String senderProfilePhoto = sender != null &&
+                  sender['profilepicture'] != null &&
+                  sender['profilepicture'] != ''
+              ? '${sender['profilepicture']}'
+              : 'default_profile_photo_url'; // Provide a default URL if not available
+
+          // Generate unique notification ID (based on time)
+          String notificationId = (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
+
+          // Show the notification with profile image and dynamic ID
+          print("Showing notification: $senderName - ${message['message']}");
+          await NotificationService.showNotification(
+            senderName, // Title
+            message['message'] ?? 'No message content', // Body
+            senderProfilePhoto, // Profile photo URL
+            message['userid'].toString(), // User ID
+            notificationId, // Notification ID (this is the dynamic ID)
+            currentUserId, // Current User ID
+            sender['firstname'] ?? 'First Name', // Sender's First Name
+            sender['lastname'] ?? 'Last Name', // Sender's Last Name
+            inboxId, // Passing inboxId here from the SSE message
+          );
+
+          print("$senderName $notificationId $inboxId");
+          print("Notification sent: $senderName - ${message['message']}");
         }
-
-        // Extract sender name
-        String senderName = '${sender['firstname']} ${sender['lastname']}';
-
-        // Extract profile photo URL
-        String senderProfilePhoto = sender != null &&
-                sender['profilepicture'] != null &&
-                sender['profilepicture'] != ''
-            ? '${sender['profilepicture']}'
-            : 'default_profile_photo_url'; // Provide a default URL if not available
-
-        // Generate unique notification ID (based on time)
-        String notificationId = (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
-
-        // Show the notification with profile image and dynamic ID
-        NotificationService.showNotification(
-          senderName, // Title
-          message['message'] ?? 'No message content', // Body
-          senderProfilePhoto, // Profile photo URL
-          message['userid'].toString(), // User ID
-          notificationId, // Notification ID (this is the dynamic ID)
-          currentUserId, // Current User ID
-          sender['firstname'] ?? 'First Name', // Sender's First Name
-          sender['lastname'] ?? 'Last Name', // Sender's Last Name
-          inboxId, // Passing inboxId here from the SSE message
-        );
-
-        print("$senderName $notificationId $inboxId");
-        print("Notification sent: $senderName - ${message['message']}");
       } else {
-        print("Message already exists in local storage, not saving.");
+        print("Message already exists, not saving.");
       }
     } else {
-      print("Message does not belong to any active inbox: $inboxId");
+      print("Message does not belong to any active inbox.");
     }
   } catch (e) {
     print("Error handling SSE message: $e");
   }
 }
+
 
   // Check if the message already exists in local storage
   Future<bool> _checkMessageExists(
@@ -313,6 +305,7 @@ void listenToSse(
       print("SSE connection established successfully.");
       final eventStream = streamedResponse.stream;
 
+      // Listen for incoming events
       await for (var chunk in eventStream) {
         String chunkString = utf8.decode(chunk);
         print("Received chunk: $chunkString");
@@ -331,7 +324,15 @@ void listenToSse(
                     message.isNotEmpty &&
                     message[0].containsKey('inboxid') &&
                     message[0].containsKey('message')) {
-                  onNewMessage(message[0]); // This triggers the callback
+                  print("Triggering onNewMessage callback...");
+                  onNewMessage(message[0]); // Trigger the callback
+
+                  // Call handleSseMessage here, passing the message and other required parameters
+                  print("Calling handleSseMessage...");
+                  handleSseMessage(message[0], inboxIds, userId); // <-- This is where we call handleSseMessage
+
+                  print("handleSseMessage has been called.");
+                  print("onNewMessage callback triggered.");
                 } else {
                   print("Invalid message structure: $message");
                 }
@@ -351,8 +352,9 @@ void listenToSse(
     // Retry logic with a delay
     print("Retrying SSE connection...");
     await Future.delayed(Duration(seconds: 5));
-      listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
+    listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
   }
 }
+
 
 }

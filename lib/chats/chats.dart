@@ -28,7 +28,7 @@ class _ChatsState extends State<Chats> {
   @override
   void initState() {
     super.initState();
-    print('Initializing Chats...');
+    //print('Initializing Chats...');
     chatRepository = ChatRepository(apiUrl: 'https://datehubbackend.onrender.com');
     chatService = ChatService(chatRepository: chatRepository);
     fetchUsers();
@@ -54,16 +54,16 @@ class _ChatsState extends State<Chats> {
   // Fetch users and their last message timestamps
   void fetchUsers() async {
   try {
-    print('Fetching users...');
+    //print('Fetching users...');
     final usersData = await chatService.getUsers(widget.myUserId);
-    print('Fetched users: $usersData');
+    //print('Fetched users: $usersData');
 
     for (var user in usersData) {
       final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
-      print('Fetching last message for inboxId: $inboxId');
+      //print('Fetching last message for inboxId: $inboxId');
       final lastMessage = await chatService.getLastMessage(inboxId);
       final createdAt = lastMessage['createdAt'] ?? '';
-      print('Last message time for inboxId $inboxId: $createdAt');
+      //print('Last message time for inboxId $inboxId: $createdAt');
       user['lastMessageTime'] = createdAt; // Add timestamp for sorting
     }
 
@@ -86,20 +86,21 @@ class _ChatsState extends State<Chats> {
         .where((inboxId) => inboxId.isNotEmpty)
         .toList();
 
-    print('Active inboxIds: $activeInboxIds');
+    //print('Active inboxIds: $activeInboxIds');
     
     // Call listenToSse but do not try to use its return value
 chatRepository.listenToSse(
-  activeInboxIds, 
-  widget.myUserId, 
-  (Map<String, dynamic> message) {
-    // Your code to process the message
+  activeInboxIds,            // List of active inbox IDs
+  widget.myUserId,           // The user ID
+  (Map<String, dynamic> message) {  // Callback function to process the message
     _onNewMessageReceived(message);
-  }
+  },
 );
 
 
-    print('Started listening to SSE for active inboxes');
+
+
+    //print('Started listening to SSE for active inboxes');
   } catch (e) {
     print('Error fetching users: $e');
     setState(() {
@@ -111,7 +112,7 @@ chatRepository.listenToSse(
 
   // Navigate to the chat inbox for a user
   Future<void> navigateToInbox(int userId, String firstName, String lastName, String profilePicture, String inboxId) async {
-    print('Navigating to inbox for user: $firstName $lastName');
+    //print('Navigating to inbox for user: $firstName $lastName');
     setState(() {
       creatingInbox = true;
     });
@@ -134,24 +135,24 @@ chatRepository.listenToSse(
   // Method to get the last message for a user
   Future<Map<String, dynamic>> getLastMessageForUser(String inboxId) async {
     try {
-      print('Fetching last message for inboxId: $inboxId');
+      //print('Fetching last message for inboxId: $inboxId');
       final lastMessage = await chatService.getLastMessage(inboxId);
       final message = lastMessage['message'] ?? '';
       final createdAt = lastMessage['createdat'] ?? '';
-      print('Last message for inboxId $inboxId: $message at $createdAt');
+     // print('Last message for inboxId $inboxId: $message at $createdAt');
       return {
         'message': message,
         'createdAt': createdAt,
       };
     } catch (e) {
-      print('Error fetching last message for inboxId $inboxId: $e');
+      //print('Error fetching last message for inboxId $inboxId: $e');
       return {'message': 'Unable to fetch message', 'createdAt': ''};
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    print('Building Chats screen...');
+    //print('Building Chats screen...');
     return Scaffold(
       body: loading
           ? const Center(
@@ -173,7 +174,7 @@ chatRepository.listenToSse(
                         String lastName = user['lastname'] ?? 'User';
                         String inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
 
-                        print('Rendering user: $firstName $lastName');
+                        //print('Rendering user: $firstName $lastName');
                         return UserListItem(
                           firstName: firstName,
                           lastName: lastName,
@@ -192,7 +193,7 @@ chatRepository.listenToSse(
                     ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          print('Navigating to Contacts screen...');
+          //print('Navigating to Contacts screen...');
           Navigator.push(
             context,
             MaterialPageRoute(
