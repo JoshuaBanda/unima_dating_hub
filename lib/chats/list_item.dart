@@ -3,7 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '/chats/full_screen_image_page.dart';
-import '/services/chat_service.dart';
 import 'package:intl/intl.dart';  // Add this import
 
 class UserListItem extends StatelessWidget {
@@ -81,6 +80,10 @@ class UserListItem extends StatelessWidget {
               backgroundImage: isValidUrl(profilePicture)
                   ? CachedNetworkImageProvider(profilePicture)
                   : const AssetImage('assets/default_profile.png') as ImageProvider,
+              // Optional: Add loading placeholder
+              onBackgroundImageError: (exception, stackTrace) {
+                print("Error loading profile picture: $exception");
+              },
             ),
           ),
           title: Text(

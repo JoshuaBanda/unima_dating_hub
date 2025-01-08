@@ -81,7 +81,7 @@ class _ChillsState extends State<Chills> {
           _scrollToBottom(); // Scroll to bottom after receiving new message
 
           _playNotificationSound('sounds/message_received.mp3');
-          chatRepository.saveReceivedMessage(inboxId, data['data']);
+          //chatRepository.saveReceivedMessage(inboxId, data['data']);
         }
       });
     });

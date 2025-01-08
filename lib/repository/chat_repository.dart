@@ -106,7 +106,7 @@ class ChatRepository {
           .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        await LocalDatabase.saveMessage(inboxId, userId, messageText);
+        //await LocalDatabase.saveMessage(inboxId, userId, messageText);
       } else {
         throw Exception('Failed to send message');
       }
@@ -163,21 +163,24 @@ class ChatRepository {
 
   // Save received message to the local database
   Future<void> saveReceivedMessage(
-      String inboxId, Map<String, dynamic> message) async {
-    try {
-      // Ensure inboxId and userId are converted to strings if they're integers
-      String inboxIdStr = inboxId.toString();
-      String userIdStr =
-          message['userid'].toString(); // Convert userid to string
-      String messageText =
-          message['message'] ?? ''; // Safeguard in case 'message' is null
+    String inboxId, Map<String, dynamic> message) async {
+  try {
+    // Ensure inboxId and userId are converted to strings if they're integers
+    String inboxIdStr = inboxId.toString();
+    String userIdStr = message['userid'].toString(); // Convert userid to string
+    String messageText = message['message'] ?? ''; // Safeguard in case 'message' is null
 
-      await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText);
-    } catch (e) {
-      print("Error saving received message: $e");
-    }
+    // Save the message in the local database
+    await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText);
+
+    // Now, update the last message cache for the given inbox
+    _updateLastMessageCache(inboxIdStr, message);
+  } catch (e) {
+    print("Error saving received message: $e");
   }
-void handleSseMessage(Map<String, dynamic> message,
+}
+
+  void handleSseMessage(Map<String, dynamic> message,
     List<String> activeInboxIds, String currentUserId) async {
   try {
     String inboxId = message['inboxid'].toString();
@@ -202,27 +205,39 @@ void handleSseMessage(Map<String, dynamic> message,
         // Save the message to the local database if it doesn't already exist
         await saveReceivedMessage(inboxId, message);
 
+        // Now, update the last message cache for the given inbox
+        _updateLastMessageCache(inboxId, message);
+
         // Fetch user information (first name, last name, and profile photo) for the sender
         List<dynamic> users = await ChatRepository.fetchUsersToMemory(currentUserId);
         Map<String, dynamic>? sender = users.firstWhere(
             (user) => user['userid'].toString() == message['userid'].toString(),
             orElse: () => null);
 
+        // If sender is unknown, do not show notification
+        if (sender == null) {
+          print("Sender is unknown, not showing notification.");
+          return;
+        }
+
+        // If the sender is the current user, do not show notification
+        if ((message['userid']).toString() == currentUserId) {
+          print("Sender is the current user, not showing notification.");
+          return;
+        }
+
         // Extract sender name
-        String senderName = sender != null
-            ? '${sender['firstname']} ${sender['lastname']}'
-            : 'Unknown User';
+        String senderName = '${sender['firstname']} ${sender['lastname']}';
 
         // Extract profile photo URL
-        String senderProfilePhoto = sender != null && sender['profilepicture'] != null && sender['profilepicture'] != ''
+        String senderProfilePhoto = sender != null &&
+                sender['profilepicture'] != null &&
+                sender['profilepicture'] != ''
             ? '${sender['profilepicture']}'
             : 'default_profile_photo_url'; // Provide a default URL if not available
 
-        print("Sender Profile Photo: $senderProfilePhoto");
-
         // Generate unique notification ID (based on time)
-        String notificationId =
-            (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
+        String notificationId = (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
 
         // Show the notification with profile image and dynamic ID
         NotificationService.showNotification(
@@ -232,8 +247,8 @@ void handleSseMessage(Map<String, dynamic> message,
           message['userid'].toString(), // User ID
           notificationId, // Notification ID (this is the dynamic ID)
           currentUserId, // Current User ID
-          sender?['firstname'] ?? 'First Name', // Sender's First Name
-          sender?['lastname'] ?? 'Last Name', // Sender's Last Name
+          sender['firstname'] ?? 'First Name', // Sender's First Name
+          sender['lastname'] ?? 'Last Name', // Sender's Last Name
           inboxId, // Passing inboxId here from the SSE message
         );
 
@@ -249,7 +264,6 @@ void handleSseMessage(Map<String, dynamic> message,
     print("Error handling SSE message: $e");
   }
 }
-
 
   // Check if the message already exists in local storage
   Future<bool> _checkMessageExists(
@@ -276,71 +290,69 @@ void handleSseMessage(Map<String, dynamic> message,
   }
 
   // Listen to SSE (Server-Sent Events) and save new messages to the local database
-  Future<void> listenToSse(
-      List<String> activeInboxIds, String currentUserId) async {
-    try {
-      final uri = Uri.parse('$apiUrl/message/event');
-      print("Initiating SSE connection to: $uri");
+  
+// The updated function definition
+void listenToSse(
+  List<String> inboxIds,
+  String userId,
+  void Function(Map<String, dynamic>) onNewMessage,
+) async {
+  try {
+    final uri = Uri.parse('$apiUrl/message/event');
+    print("Initiating SSE connection to: $uri");
 
-      final client = http.Client();
-      final request = http.Request('GET', uri);
-      request.headers.addAll({
-        'Accept': 'text/event-stream',
-      });
+    final client = http.Client();
+    final request = http.Request('GET', uri);
+    request.headers.addAll({
+      'Accept': 'text/event-stream',
+    });
 
-      final streamedResponse = await client.send(request);
+    final streamedResponse = await client.send(request);
 
-      if (streamedResponse.statusCode == 200 ||
-          streamedResponse.statusCode == 201) {
-        print("SSE connection established successfully.");
-        final eventStream = streamedResponse.stream;
+    if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+      print("SSE connection established successfully.");
+      final eventStream = streamedResponse.stream;
 
-        await for (var chunk in eventStream) {
-          String chunkString = utf8.decode(chunk);
-          print("Received chunk: $chunkString");
+      await for (var chunk in eventStream) {
+        String chunkString = utf8.decode(chunk);
+        print("Received chunk: $chunkString");
 
-          // Split the chunk into individual events (lines separated by newlines)
-          List<String> events = chunkString.split('\n');
-          for (var event in events) {
-            if (event.isNotEmpty) {
-              try {
-                // Extract the actual JSON data from the 'data:' field
-                if (event.startsWith('data:')) {
-                  String dataString = event.substring(5).trim();
-                  final message =
-                      json.decode(dataString); // Decode the JSON data
+        List<String> events = chunkString.split('\n');
+        for (var event in events) {
+          if (event.isNotEmpty) {
+            try {
+              if (event.startsWith('data:')) {
+                String dataString = event.substring(5).trim();
+                final message = json.decode(dataString);
 
-                  print("Processing event: $message");
+                print("Processing event: $message");
 
-                  // Validate the message structure before handling it
-                  if (message is List &&
-                      message.isNotEmpty &&
-                      message[0].containsKey('inboxid') &&
-                      message[0].containsKey('message')) {
-                    handleSseMessage(message[0], activeInboxIds,
-                        currentUserId); // Pass currentUserId here
-                  } else {
-                    print("Invalid message structure: $message");
-                  }
+                if (message is List &&
+                    message.isNotEmpty &&
+                    message[0].containsKey('inboxid') &&
+                    message[0].containsKey('message')) {
+                  onNewMessage(message[0]); // This triggers the callback
+                } else {
+                  print("Invalid message structure: $message");
                 }
-              } catch (e) {
-                print("Error decoding event: $e");
               }
+            } catch (e) {
+              print("Error decoding event: $e");
             }
           }
         }
-      } else {
-        print(
-            "Error in SSE connection. Status code: ${streamedResponse.statusCode}");
       }
-    } catch (e) {
-      print("Error listening to SSE: $e");
-
-      // Retry logic
-      print("Retrying SSE connection...");
-      await Future.delayed(Duration(seconds: 5));
-      await listenToSse(
-          activeInboxIds, currentUserId); // Pass currentUserId here as well
+    } else {
+      print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
     }
+  } catch (e) {
+    print("Error listening to SSE: $e");
+
+    // Retry logic with a delay
+    print("Retrying SSE connection...");
+    await Future.delayed(Duration(seconds: 5));
+      listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
   }
+}
+
 }

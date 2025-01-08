@@ -34,53 +34,80 @@ class _ChatsState extends State<Chats> {
     fetchUsers();
   }
 
-  // Fetch users and their last message timestamps
-  Future<void> fetchUsers() async {
-    try {
-      print('Fetching users...');
-      final usersData = await chatService.getUsers(widget.myUserId);
-      print('Fetched users: $usersData');
-
-      for (var user in usersData) {
-        final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
-        print('Fetching last message for inboxId: $inboxId');
-        final lastMessage = await chatService.getLastMessage(inboxId);
-        final createdAt = lastMessage['createdAt'] ?? '';
-        print('Last message time for inboxId $inboxId: $createdAt');
-        user['lastMessageTime'] = createdAt; // Add timestamp for sorting
+  // Callback for SSE messages
+  void _onNewMessageReceived(Map<String, dynamic> message) {
+  setState(() {
+    final inboxId = message['inboxid']?.toString();
+    if (inboxId != null) {
+      for (var user in users) {
+        if (user['inboxData']?['inboxid']?.toString() == inboxId) {
+          // Update the last message and its timestamp
+          user['lastMessage'] = message['message'];
+          user['lastMessageTime'] = message['createdAt'];
+          break;
+        }
       }
-
-      usersData.sort((a, b) {
-        final timeA = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
-        final timeB = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
-        return timeB.compareTo(timeA); // Sort descending
-      });
-
-      setState(() {
-        users = usersData;
-        loading = false;
-        error = '';
-      });
-
-      // Now that we have the users, start listening for SSE messages
-      List<String> activeInboxIds = usersData
-          .map((user) => user['inboxData']?['inboxid']?.toString() ?? '')
-          .where((inboxId) => inboxId.isNotEmpty)
-          .toList();
-
-      print('Active inboxIds: $activeInboxIds');
-      
-      // Pass currentUserId (widget.myUserId) to listenToSse
-      chatRepository.listenToSse(activeInboxIds, widget.myUserId);
-      print('Started listening to SSE for active inboxes');
-    } catch (e) {
-      print('Error fetching users: $e');
-      setState(() {
-        error = 'Failed to load users';
-        loading = false;
-      });
     }
+  });
+}
+
+  // Fetch users and their last message timestamps
+  void fetchUsers() async {
+  try {
+    print('Fetching users...');
+    final usersData = await chatService.getUsers(widget.myUserId);
+    print('Fetched users: $usersData');
+
+    for (var user in usersData) {
+      final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
+      print('Fetching last message for inboxId: $inboxId');
+      final lastMessage = await chatService.getLastMessage(inboxId);
+      final createdAt = lastMessage['createdAt'] ?? '';
+      print('Last message time for inboxId $inboxId: $createdAt');
+      user['lastMessageTime'] = createdAt; // Add timestamp for sorting
+    }
+
+    // Sort users by the last message timestamp (descending)
+    usersData.sort((a, b) {
+      final timeA = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
+      final timeB = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
+      return timeB.compareTo(timeA); // Sort descending
+    });
+
+    setState(() {
+      users = usersData;
+      loading = false;
+      error = '';
+    });
+
+    // Start listening for SSE messages for active inboxes
+    List<String> activeInboxIds = usersData
+        .map((user) => user['inboxData']?['inboxid']?.toString() ?? '')
+        .where((inboxId) => inboxId.isNotEmpty)
+        .toList();
+
+    print('Active inboxIds: $activeInboxIds');
+    
+    // Call listenToSse but do not try to use its return value
+chatRepository.listenToSse(
+  activeInboxIds, 
+  widget.myUserId, 
+  (Map<String, dynamic> message) {
+    // Your code to process the message
+    _onNewMessageReceived(message);
   }
+);
+
+
+    print('Started listening to SSE for active inboxes');
+  } catch (e) {
+    print('Error fetching users: $e');
+    setState(() {
+      error = 'Failed to load users';
+      loading = false;
+    });
+  }
+}
 
   // Navigate to the chat inbox for a user
   Future<void> navigateToInbox(int userId, String firstName, String lastName, String profilePicture, String inboxId) async {
