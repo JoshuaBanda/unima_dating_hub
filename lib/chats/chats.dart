@@ -35,44 +35,48 @@ class _ChatsState extends State<Chats> {
   }
 
   // Callback for SSE messages
-  void _onNewMessageReceived(Map<String, dynamic> message) {
+// Callback for SSE messages
+// Callback for SSE messages
+void _onNewMessageReceived(Map<String, dynamic> message) {
   setState(() {
     final inboxId = message['inboxid']?.toString();
     if (inboxId != null) {
-      for (var user in users) {
+      // Create a new users list with updated data
+      users = users.map((user) {
         if (user['inboxData']?['inboxid']?.toString() == inboxId) {
-          // Update the last message and its timestamp
+          // Update the last message and timestamp for the correct user
           user['lastMessage'] = message['message'];
           user['lastMessageTime'] = message['createdAt'];
-          break;
         }
-      }
+        return user;
+      }).toList(); // Ensure this creates a new list
+
+      // Sort the users based on the last message time (descending)
+      users.sort((a, b) {
+        final timeA = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
+        final timeB = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
+        return timeB.compareTo(timeA); // Sorting in descending order
+      });
     }
   });
 }
 
   // Fetch users and their last message timestamps
-  void fetchUsers() async {
+void fetchUsers() async {
   try {
-    //print('Fetching users...');
     final usersData = await chatService.getUsers(widget.myUserId);
-    //print('Fetched users: $usersData');
 
+    // Create a ValueNotifier for each user
     for (var user in usersData) {
       final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
-      //print('Fetching last message for inboxId: $inboxId');
       final lastMessage = await chatService.getLastMessage(inboxId);
       final createdAt = lastMessage['createdAt'] ?? '';
-      //print('Last message time for inboxId $inboxId: $createdAt');
-      user['lastMessageTime'] = createdAt; // Add timestamp for sorting
+      
+      user['lastMessageNotifier'] = ValueNotifier<Map<String, dynamic>>({
+        'message': lastMessage['message'],
+        'createdAt': createdAt,
+      });
     }
-
-    // Sort users by the last message timestamp (descending)
-    usersData.sort((a, b) {
-      final timeA = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
-      final timeB = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
-      return timeB.compareTo(timeA); // Sort descending
-    });
 
     setState(() {
       users = usersData;
@@ -80,35 +84,27 @@ class _ChatsState extends State<Chats> {
       error = '';
     });
 
-    // Start listening for SSE messages for active inboxes
+    // Start the SSE listener
     List<String> activeInboxIds = usersData
         .map((user) => user['inboxData']?['inboxid']?.toString() ?? '')
         .where((inboxId) => inboxId.isNotEmpty)
         .toList();
 
-    //print('Active inboxIds: $activeInboxIds');
-    
-    // Call listenToSse but do not try to use its return value
-chatRepository.listenToSse(
-  activeInboxIds,            // List of active inbox IDs
-  widget.myUserId,           // The user ID
-  (Map<String, dynamic> message) {  // Callback function to process the message
-    _onNewMessageReceived(message);
-  },
-);
-
-
-
-
-    //print('Started listening to SSE for active inboxes');
+    chatRepository.listenToSse(
+      activeInboxIds,
+      widget.myUserId,
+      (Map<String, dynamic> message) {
+        _onNewMessageReceived(message); // Update notifier
+      },
+    );
   } catch (e) {
-    print('Error fetching users: $e');
     setState(() {
       error = 'Failed to load users';
       loading = false;
     });
   }
 }
+
 
   // Navigate to the chat inbox for a user
   Future<void> navigateToInbox(int userId, String firstName, String lastName, String profilePicture, String inboxId) async {

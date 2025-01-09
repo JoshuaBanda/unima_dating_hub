@@ -150,4 +150,71 @@ class ApiService {
       throw Exception('Failed to add comment');
     }
   }
+
+  // Update an existing comment
+    Future<void> updateComment({
+  required String jwtToken,
+  required int confessionId,
+  required int commentId,
+  required String newCommentText,
+}) async {
+  if (confessionId == null || commentId == null || newCommentText.isEmpty) {
+    throw Exception("Invalid parameters for update.");
+  }
+
+  try {
+    final response = await client.patch(
+      Uri.parse('$baseUrl/confession-comments/$commentId'),  // Correcting to PATCH for update
+      headers: {
+        'Authorization': 'Bearer $jwtToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'newconfession_Comment': newCommentText,  // Changed to match backend's body parameter
+      }),
+    );
+
+    print('Response Body for updating comment: ${response.body}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return;
+    } else {
+      throw Exception(
+          'Failed to update comment. Status Code: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error updating comment: $e');
+    throw Exception('Failed to update comment');
+  }
+}
+
+  // Delete a comment
+  Future<void> deleteComment({
+  required String jwtToken,
+  required int confessionId,
+  required int commentId,
+}) async {
+  try {
+    final response = await client.delete(
+      Uri.parse('$baseUrl/confession-comments/$commentId'), // Correct URL
+      headers: {
+        'Authorization': 'Bearer $jwtToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print('Response Body for deleting comment: ${response.body}');
+
+    if (response.statusCode == 200) {
+      return;
+    } else {
+      throw Exception(
+          'Failed to delete comment. Status Code: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Error deleting comment: $e');
+    throw Exception('Failed to delete comment');
+  }
+}
+
 }
