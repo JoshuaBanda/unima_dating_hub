@@ -170,7 +170,6 @@ class ApiService {
     }
   }
 
-
   // Function to refresh the JWT token by logging in again
   Future<String?> _refreshToken() async {
     try {
@@ -202,8 +201,6 @@ class ApiService {
       throw Exception('Failed to refresh token: $e');
     }
   }
-
-
 
   Future<void> deleteComment({
     required String jwtToken,
@@ -238,39 +235,214 @@ class ApiService {
   }
 
   Future<void> updateComment({
-  required String jwtToken,
-  required int postId,           // This parameter seems unnecessary based on the backend, but I'll leave it here for consistency
-  required int commentId,
-  required String newCommentText,
-}) async {
-  if (commentId == null || newCommentText.isEmpty) {
-    throw Exception("Invalid parameters for update.");
+    required String jwtToken,
+    required int
+        postId, // This parameter seems unnecessary based on the backend, but I'll leave it here for consistency
+    required int commentId,
+    required String newCommentText,
+  }) async {
+    if (commentId == null || newCommentText.isEmpty) {
+      throw Exception("Invalid parameters for update.");
+    }
+
+    try {
+      final response = await client.patch(
+        Uri.parse(
+            '$baseUrl/post-comments/$commentId'), // Correct URL for comment update
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'comment':
+              newCommentText, // Corrected body key to match backend parameter (`'comment'`)
+        }),
+      );
+
+      print('Response Body for updating comment: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return;
+      } else {
+        throw Exception(
+            'Failed to update comment. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating comment: $e');
+      throw Exception('Failed to update comment');
+    }
   }
 
+  Future<bool> likePost({
+  required String jwtToken,
+  required int postId,
+  required int userId,
+}) async {
   try {
-    final response = await client.patch(
-      Uri.parse('$baseUrl/post-comments/$commentId'),  // Correct URL for comment update
+    final response = await client.post(
+      Uri.parse('$baseUrl/post-likes/like'),
       headers: {
         'Authorization': 'Bearer $jwtToken',
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'comment': newCommentText,  // Corrected body key to match backend parameter (`'comment'`)
+        'postId': postId,
+        'userId': userId,
       }),
     );
 
-    print('Response Body for updating comment: ${response.body}');
-
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return;
+      // Successfully liked the post
+      return true; // Return success flag
+    } else if (response.statusCode == 409) {
+      // Conflict: User has already liked the post
+      throw Exception('User has already liked this post');
+    } else if (response.statusCode == 404) {
+      // Not found: the post might not exist
+      throw Exception('Post not found');
+    } else if (response.statusCode == 500) {
+      // Server error
+      throw Exception('Server error, please try again later');
     } else {
+      // Unknown error
       throw Exception(
-          'Failed to update comment. Status Code: ${response.statusCode}');
+          'Failed to like post. Status Code: ${response.statusCode}');
     }
   } catch (e) {
-    print('Error updating comment: $e');
-    throw Exception('Failed to update comment');
+    // General error
+    throw Exception('Failed to like post: $e');
   }
 }
 
+  // Function to remove a like from a post
+  Future<bool> unlikePost({
+  required String jwtToken,
+  required int postId,
+  required int userId,
+}) async {
+  try {
+    final response = await client.delete(
+      Uri.parse('$baseUrl/post-likes/$postId/$userId'),
+      headers: {
+        'Authorization': 'Bearer $jwtToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Successfully removed the like
+      return true; // Indicate success
+    } else if (response.statusCode == 404) {
+      // Like not found
+      throw Exception('Like not found for this post');
+    } else if (response.statusCode == 401) {
+      // Unauthorized: JWT token might be expired or invalid
+      throw Exception('Unauthorized: Please check your credentials');
+    } else if (response.statusCode == 500) {
+      // Server error
+      throw Exception('Server error, please try again later');
+    } else {
+      throw Exception('Failed to remove like. Status Code: ${response.statusCode}');
+    }
+  } catch (e) {
+    // Log or print the error for debugging purposes
+    print("Error during unlike post request: $e");
+    throw Exception('Failed to remove like: $e');
+  }
+}
+
+  Future<bool> isUserLikedPost({
+    required String jwtToken,
+    required int postId,
+    required int userId,
+  }) async {
+    try {
+      final response = await client.get(
+        Uri.parse('$baseUrl/post-likes/has-liked/$postId/$userId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // Log the response for debugging
+      print('is user like post Response status: ${response.statusCode}');
+      print('is user like post Response body: ${response.body}');
+
+      // Handle success response (status code 200)
+      if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          return false; // No likes found for this post
+        }
+
+        // Decode the response body
+        final data = jsonDecode(response.body);
+
+        // Log the decoded data
+        print('Decoded data: $data');
+
+        // Handle response format as either List or bool
+        if (data is List) {
+          return data
+              .isNotEmpty; // If it's a list and not empty, the user has liked the post
+        } else if (data is bool) {
+          return data; // If it's a boolean value, return it directly (e.g., `true` or `false`)
+        } else {
+          // Handle unexpected format
+          throw Exception('Unexpected response format, expected List or bool');
+        }
+      } else {
+        // Handle failure response
+        throw Exception(
+            'Failed to check if user liked post. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error checking if user liked post: $e');
+      throw Exception('Failed to check if user liked post: $e');
+    }
+  }
+
+  Future<int> fetchLikesForPost({
+    required String jwtToken,
+    required int postId,
+  }) async {
+    try {
+      final response = await client.get(
+        Uri.parse('$baseUrl/post-likes/$postId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // Log the response for debugging
+      print('Response status: ${response.statusCode}');
+      print('Response body afetr getting likes: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Check if the response body is empty
+        if (response.body.isEmpty) {
+          print('No likes found for this post');
+          return 0; // Return 0 likes if no data is found
+        } else {
+          return 4;
+        }
+
+        // Parse the response body as a list of like objects
+        final data = jsonDecode(response.body) as List<dynamic>;
+
+        // Log the decoded data
+        print('Decoded data: $data');
+
+        // Return the number of likes
+        return data.length; // Number of likes is the length of the list
+      } else {
+        throw Exception(
+            'Failed to fetch likes for post $postId. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching likes: $e');
+      throw Exception('Failed to fetch likes: $e');
+    }
+  }
 }

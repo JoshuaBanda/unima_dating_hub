@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:intl/intl.dart'; // Import for date formatting
+import 'package:intl/intl.dart';
+import 'api_service.dart'; // Import the ApiService
 import 'post/post.dart';
 import 'comment_dialog.dart';
 import 'package:unima_dating_hub/chats/full_screen_image_page.dart';
 import 'package:unima_dating_hub/chats/profile_page.dart';
 import 'report_page.dart';
 import 'post_photo_full_page.dart';
+import 'like_button.dart'; // Import the LikeButton widget
 
 class PostItem extends StatefulWidget {
   final Post post;
@@ -28,7 +30,57 @@ class PostItem extends StatefulWidget {
 }
 
 class _PostItemState extends State<PostItem> {
-  bool isLiked = false;
+  int likeCount = 0; // Variable to hold the like count
+  bool isLiked =
+      false; // Variable to track if the current user has liked the post
+
+  final ApiService apiService =
+      ApiService(); // Assuming ApiService is responsible for network calls
+
+  // Method to fetch like count and status for the current post
+  void _fetchLikeData() async {
+    try {
+      // Fetch the like count from the API
+      final fetchedLikeCount = await apiService.fetchLikesForPost(
+        jwtToken: widget.jwtToken,
+        postId: widget.post.postId,
+      );
+
+      // Fetch the like status for the current user
+      final fetchedIsLiked = await apiService.isUserLikedPost(
+        jwtToken: widget.jwtToken,
+        postId: widget.post.postId,
+        userId: widget.currentUserId,
+      );
+
+      setState(() {
+        likeCount = fetchedLikeCount;
+        isLiked = fetchedIsLiked;
+      });
+      print("like count $likeCount   is liked $isLiked");
+
+    } catch (e) {
+      print("Error fetching like data: $e");
+      // Show error message to the user
+      _showErrorMessage("Failed to load like data. Please try again.");
+    }
+  }
+
+  // Display a snackbar for error handling
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLikeData(); // Fetch the like data when the widget is initialized
+  }
 
   // Format the date and time to a readable string in 12-hour format with a 2-hour adjustment
   String _formatDate(DateTime date) {
@@ -85,9 +137,8 @@ class _PostItemState extends State<PostItem> {
   @override
   Widget build(BuildContext context) {
     String profileImage = widget.post.profilePicture;
-
-    bool isValidUrl =
-        profileImage.startsWith('http://') || profileImage.startsWith('https://');
+    bool isValidUrl = profileImage.startsWith('http://') ||
+        profileImage.startsWith('https://');
     if (!isValidUrl) {
       profileImage = 'assets/default_profile.png';
     }
@@ -195,16 +246,14 @@ class _PostItemState extends State<PostItem> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              IconButton(
-                icon: Icon(
-                  Icons.thumb_up,
-                  color: isLiked ? Colors.redAccent : Colors.grey,
-                ),
-                onPressed: () {
-                  setState(() {
-                    isLiked = !isLiked;
-                  });
-                },
+              // Pass the actual like count and isLiked status to the LikeButton
+              LikeButton(
+                postId: widget.post.postId,
+                userId: widget.currentUserId,
+                jwtToken: widget.jwtToken,
+                initialLikeCount: likeCount, // Pass the actual like count
+                initialLikeStatus:
+                    isLiked, // Pass whether the current user has liked the post
               ),
               IconButton(
                 icon: Icon(

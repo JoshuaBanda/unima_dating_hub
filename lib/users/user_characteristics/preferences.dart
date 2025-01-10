@@ -178,10 +178,9 @@ class _PreferencesState extends State<Preferences> {
                       });
                     },
                     items: [
-                      '18', '18-19', '20-21', '22-23', '24-25', '26-27',
-                      '28-29',
-                      '30-34', '35-39', '40-44', '45-49',
-                      '50+' // Add more age ranges as needed
+                      '17','18', '19', '20', '21', '22', '23',
+                      '24',
+                      '25', '26','27', '28',
                     ].map<DropdownMenuItem<String>>((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
