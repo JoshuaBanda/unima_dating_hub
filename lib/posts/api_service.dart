@@ -274,82 +274,85 @@ class ApiService {
   }
 
   Future<bool> likePost({
-  required String jwtToken,
-  required int postId,
-  required int userId,
-}) async {
-  try {
-    final response = await client.post(
-      Uri.parse('$baseUrl/post-likes/like'),
-      headers: {
-        'Authorization': 'Bearer $jwtToken',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'postId': postId,
-        'userId': userId,
-      }),
-    );
+    required String jwtToken,
+    required int postId,
+    required int userId,
+  }) async {
+    try {
+      final response = await client.post(
+        Uri.parse('$baseUrl/post-likes/like'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'postId': postId,
+          'userId': userId,
+        }),
+      );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // Successfully liked the post
-      return true; // Return success flag
-    } else if (response.statusCode == 409) {
-      // Conflict: User has already liked the post
-      throw Exception('User has already liked this post');
-    } else if (response.statusCode == 404) {
-      // Not found: the post might not exist
-      throw Exception('Post not found');
-    } else if (response.statusCode == 500) {
-      // Server error
-      throw Exception('Server error, please try again later');
-    } else {
-      // Unknown error
-      throw Exception(
-          'Failed to like post. Status Code: ${response.statusCode}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        dynamic data = response.body;
+        print(" data $data");
+        // Successfully liked the post
+        return true; // Return success flag
+      } else if (response.statusCode == 409) {
+        // Conflict: User has already liked the post
+        throw Exception('User has already liked this post');
+      } else if (response.statusCode == 404) {
+        // Not found: the post might not exist
+        throw Exception('Post not found');
+      } else if (response.statusCode == 500) {
+        // Server error
+        throw Exception('Server error, please try again later');
+      } else {
+        // Unknown error
+        throw Exception(
+            'Failed to like post. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      // General error
+      throw Exception('Failed to like post: $e');
     }
-  } catch (e) {
-    // General error
-    throw Exception('Failed to like post: $e');
   }
-}
 
   // Function to remove a like from a post
   Future<bool> unlikePost({
-  required String jwtToken,
-  required int postId,
-  required int userId,
-}) async {
-  try {
-    final response = await client.delete(
-      Uri.parse('$baseUrl/post-likes/$postId/$userId'),
-      headers: {
-        'Authorization': 'Bearer $jwtToken',
-        'Content-Type': 'application/json',
-      },
-    );
+    required String jwtToken,
+    required int postId,
+    required int userId,
+  }) async {
+    try {
+      final response = await client.delete(
+        Uri.parse('$baseUrl/post-likes/$postId/$userId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      // Successfully removed the like
-      return true; // Indicate success
-    } else if (response.statusCode == 404) {
-      // Like not found
-      throw Exception('Like not found for this post');
-    } else if (response.statusCode == 401) {
-      // Unauthorized: JWT token might be expired or invalid
-      throw Exception('Unauthorized: Please check your credentials');
-    } else if (response.statusCode == 500) {
-      // Server error
-      throw Exception('Server error, please try again later');
-    } else {
-      throw Exception('Failed to remove like. Status Code: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        // Successfully removed the like
+        return true; // Indicate success
+      } else if (response.statusCode == 404) {
+        // Like not found
+        throw Exception('Like not found for this post');
+      } else if (response.statusCode == 401) {
+        // Unauthorized: JWT token might be expired or invalid
+        throw Exception('Unauthorized: Please check your credentials');
+      } else if (response.statusCode == 500) {
+        // Server error
+        throw Exception('Server error, please try again later');
+      } else {
+        throw Exception(
+            'Failed to remove like. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Log or print the error for debugging purposes
+      print("Error during unlike post request: $e");
+      throw Exception('Failed to remove like: $e');
     }
-  } catch (e) {
-    // Log or print the error for debugging purposes
-    print("Error during unlike post request: $e");
-    throw Exception('Failed to remove like: $e');
   }
-}
 
   Future<bool> isUserLikedPost({
     required String jwtToken,
@@ -425,17 +428,15 @@ class ApiService {
           print('No likes found for this post');
           return 0; // Return 0 likes if no data is found
         } else {
-          return 4;
+          // Parse the response body as a list of like objects
+          final data = jsonDecode(response.body) as List<dynamic>;
+
+          // Log the decoded data
+          print('Decoded data: $data');
+
+          // Return the number of likes
+          return data.length; // Number of likes is the length of the list
         }
-
-        // Parse the response body as a list of like objects
-        final data = jsonDecode(response.body) as List<dynamic>;
-
-        // Log the decoded data
-        print('Decoded data: $data');
-
-        // Return the number of likes
-        return data.length; // Number of likes is the length of the list
       } else {
         throw Exception(
             'Failed to fetch likes for post $postId. Status Code: ${response.statusCode}');

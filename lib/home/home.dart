@@ -234,56 +234,96 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text(
-            "$firstName $lastName",
+  automaticallyImplyLeading: false, // This removes the default back arrow
+  toolbarHeight: 100.0,
+  title: Align(
+    alignment: Alignment.bottomLeft, // Align the title slightly downward
+    child: Padding(
+      padding: const EdgeInsets.only(top: 10.0), // Move the title slightly downward
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Unima Dates", // Text displayed on top
+            style:GoogleFonts.sourceSansPro(
+  textStyle: TextStyle(
+    foreground: Paint()
+      ..shader = LinearGradient(
+        colors: [Colors.pink, const Color.fromARGB(255, 253, 183, 77),Colors.red],
+      ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+    fontStyle: FontStyle.normal,
+    fontSize: 32,
+    fontWeight: FontWeight.w700,
+  ),
+)
+
+          ),
+          SizedBox(height: 4.0), // Adds a little space between "Unima Dates" and the name
+          Text(
+            "$firstName $lastName", // The first name and last name
             style: GoogleFonts.dancingScript(
               textStyle: TextStyle(
-                color: Colors.red,
+                color: Colors.black,
                 fontStyle: FontStyle.italic,
-                fontSize: 28,
+                fontSize: 20,
               ),
             ),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.search, color: Colors.black),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SearchPage(),
-                  ),
-                );
-              },
+        ],
+      ),
+    ),
+  ),
+  actions: [
+    Padding(
+      padding: const EdgeInsets.only(right: 0.0, top: 40.0), // Move the search icon down
+      child: IconButton(
+        icon: const Icon(Icons.search, color: Colors.black),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SearchPage(),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MyProfilePage(
-                      currentUserId: currentUserId,
-                      currentUserEmail: currentUserEmail,
-                      firstName: firstName,
-                      lastName: lastName,
-                      profilePicture: isValidUrl(profilePicture) ? profilePicture : 'assets/default_profile.png', // Validate the URL
-                      activationStatus: activationStatus,
-                    ),
-                  ),
-                );
-              },
-              child: CircleAvatar(
-                radius: 20,
-                backgroundImage: isValidUrl(profilePicture) ? NetworkImage(profilePicture) : AssetImage('assets/default_profile.png') as ImageProvider, // Use default image if URL is invalid
-                backgroundColor: Colors.grey[300],
+          );
+        },
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.only(right: 0.0, top: 40.0), // Move the profile picture down
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MyProfilePage(
+                currentUserId: currentUserId,
+                currentUserEmail: currentUserEmail,
+                firstName: firstName,
+                lastName: lastName,
+                profilePicture: isValidUrl(profilePicture) ? profilePicture : 'assets/default_profile.png',
+                activationStatus: activationStatus,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.more_vert, color: Colors.black),
-              onPressed: _onMenuPressed,
-            ),
-          ],
+          );
+        },
+        child: CircleAvatar(
+          radius: 20,
+          backgroundImage: isValidUrl(profilePicture) ? NetworkImage(profilePicture) : AssetImage('assets/default_profile.png') as ImageProvider,
+          backgroundColor: Colors.grey[300],
         ),
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.only(top: 40.0), // Move the menu icon down
+      child: IconButton(
+        icon: const Icon(Icons.more_vert, color: Colors.black),
+        onPressed: _onMenuPressed,
+      ),
+    ),
+  ],
+)
+
+,
         body: Column(
           children: [
             const Divider(height: 1, color: Colors.grey, thickness: 1),

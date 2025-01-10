@@ -33,6 +33,47 @@ class _LikeButtonState extends State<LikeButton> {
     // Initialize like count and like status from passed parameters
     likeCount = widget.initialLikeCount;
     isLiked = widget.initialLikeStatus;
+
+    // Fetch real like data from the API
+    _fetchLikeData();
+  }
+
+  // Method to fetch like data from the API
+  void _fetchLikeData() async {
+    try {
+      setState(() {
+        isLoading = true; // Start loading
+      });
+
+      // Fetch the like count from the API
+      final fetchedLikeCount = await apiService.fetchLikesForPost(
+        jwtToken: widget.jwtToken,
+        postId: widget.postId,
+      );
+
+      // Fetch the like status for the current user
+      final fetchedIsLiked = await apiService.isUserLikedPost(
+        jwtToken: widget.jwtToken,
+        postId: widget.postId,
+        userId: widget.userId,
+      );
+
+      setState(() {
+        likeCount = fetchedLikeCount;  // Update the like count with fetched value
+        isLiked = fetchedIsLiked;  // Update the like status with fetched value
+        isLoading = false;  // Stop loading
+      });
+
+      print("Like count: $likeCount, Is liked: $isLiked");
+
+    } catch (e) {
+      setState(() {
+        isLoading = false;  // Stop loading
+      });
+      print("Error fetching like data: $e");
+      // Show error message to the user
+      _showErrorSnackbar("Failed to load like data. Please try again.");
+    }
   }
 
   // Toggle like/unlike the post
