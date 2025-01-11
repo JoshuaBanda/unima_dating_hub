@@ -41,14 +41,14 @@ class _ReportPageState extends State<ReportPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://your-backend-api.com/report'), // Replace with your actual API URL
+        Uri.parse(
+            'https://your-backend-api.com/report'), // Replace with your actual API URL
         headers: <String, String>{
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          'postId': widget.postId,
-          'currentUserId': widget.currentUserId,
-          'secondUserId': widget.secondUserId,
+          'postid': widget.postId,
+          'offender': widget.secondUserId,
           'reportMessage': reportMessage,
         }),
       );
@@ -60,7 +60,8 @@ class _ReportPageState extends State<ReportPage> {
         Navigator.of(context).pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to report the post. Please try again.')),
+          SnackBar(
+              content: Text('Failed to report the post. Please try again.')),
         );
       }
     } catch (e) {
@@ -136,11 +137,14 @@ class _ReportPageState extends State<ReportPage> {
             SizedBox(height: 20),
             // Submit button
             isSubmitting
-                ? Center(child: CircularProgressIndicator()) // Show loading indicator while submitting
+                ? Center(
+                    child:
+                        CircularProgressIndicator()) // Show loading indicator while submitting
                 : ElevatedButton(
                     onPressed: _sendReport, // Submit the report
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red, // Red background color for the button
+                      backgroundColor:
+                          Colors.red, // Red background color for the button
                       iconColor: Colors.white, // White text color
                     ),
                     child: Text(
@@ -154,7 +158,8 @@ class _ReportPageState extends State<ReportPage> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.red), // Red color for cancel text
+                style:
+                    TextStyle(color: Colors.red), // Red color for cancel text
               ),
             ),
           ],

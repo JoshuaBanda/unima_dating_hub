@@ -220,7 +220,7 @@ class ApiService {
         },
       );
 
-      print('Response Body for deleting comment: ${response.body}');
+      //print('Response Body for deleting comment: ${response.body}');
 
       if (response.statusCode == 200) {
         return;
@@ -229,7 +229,7 @@ class ApiService {
             'Failed to delete comment. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error deleting comment: $e');
+      //print('Error deleting comment: $e');
       throw Exception('Failed to delete comment');
     }
   }
@@ -241,7 +241,7 @@ class ApiService {
     required int commentId,
     required String newCommentText,
   }) async {
-    if (commentId == null || newCommentText.isEmpty) {
+    if (commentId == /*null*/0 || newCommentText.isEmpty) {
       throw Exception("Invalid parameters for update.");
     }
 
@@ -259,7 +259,7 @@ class ApiService {
         }),
       );
 
-      print('Response Body for updating comment: ${response.body}');
+      //print('Response Body for updating comment: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return;
@@ -268,7 +268,7 @@ class ApiService {
             'Failed to update comment. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error updating comment: $e');
+      //print('Error updating comment: $e');
       throw Exception('Failed to update comment');
     }
   }
@@ -293,7 +293,7 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         dynamic data = response.body;
-        print(" data $data");
+       // print(" data $data");
         // Successfully liked the post
         return true; // Return success flag
       } else if (response.statusCode == 409) {
@@ -349,7 +349,7 @@ class ApiService {
       }
     } catch (e) {
       // Log or print the error for debugging purposes
-      print("Error during unlike post request: $e");
+      //print("Error during unlike post request: $e");
       throw Exception('Failed to remove like: $e');
     }
   }
@@ -369,8 +369,8 @@ class ApiService {
       );
 
       // Log the response for debugging
-      print('is user like post Response status: ${response.statusCode}');
-      print('is user like post Response body: ${response.body}');
+      //print('is user like post Response status: ${response.statusCode}');
+      //print('is user like post Response body: ${response.body}');
 
       // Handle success response (status code 200)
       if (response.statusCode == 200) {
@@ -382,7 +382,7 @@ class ApiService {
         final data = jsonDecode(response.body);
 
         // Log the decoded data
-        print('Decoded data: $data');
+        //print('Decoded data: $data');
 
         // Handle response format as either List or bool
         if (data is List) {
@@ -400,7 +400,7 @@ class ApiService {
             'Failed to check if user liked post. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error checking if user liked post: $e');
+      //print('Error checking if user liked post: $e');
       throw Exception('Failed to check if user liked post: $e');
     }
   }
@@ -419,20 +419,20 @@ class ApiService {
       );
 
       // Log the response for debugging
-      print('Response status: ${response.statusCode}');
-      print('Response body afetr getting likes: ${response.body}');
+      //print('Response status: ${response.statusCode}');
+      //print('Response body afetr getting likes: ${response.body}');
 
       if (response.statusCode == 200) {
         // Check if the response body is empty
         if (response.body.isEmpty) {
-          print('No likes found for this post');
+         // print('No likes found for this post');
           return 0; // Return 0 likes if no data is found
         } else {
           // Parse the response body as a list of like objects
           final data = jsonDecode(response.body) as List<dynamic>;
 
           // Log the decoded data
-          print('Decoded data: $data');
+          //print('Decoded data: $data');
 
           // Return the number of likes
           return data.length; // Number of likes is the length of the list
@@ -442,7 +442,7 @@ class ApiService {
             'Failed to fetch likes for post $postId. Status Code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching likes: $e');
+      //print('Error fetching likes: $e');
       throw Exception('Failed to fetch likes: $e');
     }
   }

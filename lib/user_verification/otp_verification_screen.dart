@@ -35,7 +35,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   static const String baseUrl = "https://datehubbackend.onrender.com";
   final Uri verifyOtpUrl = Uri.parse('$baseUrl/users/otp/verify');
-  final Uri createUserUrl = Uri.parse('$baseUrl/users/createuser'); // Endpoint to create user
+  final Uri createUserUrl = Uri.parse('$baseUrl/users/create-user'); // Endpoint to create user
 
   // Initialize FlutterSecureStorage
   final FlutterSecureStorage _storage = FlutterSecureStorage();

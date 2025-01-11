@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '/home/home.dart';  // Import the FarmSmartScreen
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';  // Import secure storage
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import secure storage
+import 'Login_SignUp.dart';
 
 class UpdatePasswordPage extends StatefulWidget {
   final String email;
@@ -71,22 +71,33 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
           _message = "Password updated successfully!";
           _isLoading = false;
         });
 
-        // Store the email and updated password securely using flutter_secure_storage
-        await _secureStorage.write(key: 'email', value: widget.email);  // Store email
-        await _secureStorage.write(key: 'password', value: newPassword);  // Store new password
-
-        // Navigate to the FarmSmartScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => FarmSmartScreen(),
-          ),
+        // Show the success dialog with a message
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Success'),
+              content: Text('Your password has been updated successfully!'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close the dialog
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to LoginPage
+                    );
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
         );
       } else {
         setState(() {
@@ -105,6 +116,9 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Update Password'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -130,10 +144,10 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
               ),
               onPressed: _isLoading ? null : _updatePassword,
               child: _isLoading
-                  ? const SpinKitFadingCircle(color: Colors.white, size: 30.0) 
+                  ? const SpinKitFadingCircle(color: Colors.white, size: 30.0)
                   : const Text('Update Password', style: TextStyle(color: Colors.white)),
             ),
-            if (_message.isNotEmpty) 
+            if (_message.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 20),
                 child: Text(_message, style: TextStyle(color: Colors.red)),

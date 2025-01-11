@@ -94,26 +94,28 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
   // Navigation for the menu items (Logout)
   void _onMenuPressed() {
     showMenu(
-      context: context,
-      position: const RelativeRect.fromLTRB(1.0, 80.0, 0.0, 0.0),
-      items: [
-        const PopupMenuItem(
-          value: 'logout',
-          child: Text(
-            'Logout',
-            style: TextStyle(color: Colors.black),
-          ),
-        ),
-        PopupMenuItem(
-          value: 'navigate', // Add this item for navigation
-          child: Text(
-            'settings', // The option text
-            style: TextStyle(color: Colors.black),
-          ),
-        ),
-      ],
-      elevation: 8.0,
-    ).then((value) {
+  context: context,
+  position: const RelativeRect.fromLTRB(1.0, 80.0, 0.0, 0.0),
+  items: [
+    // Place "settings" first so it appears on top
+    PopupMenuItem(
+      value: 'navigate', // Add this item for navigation
+      child: Text(
+        'Settings', // The option text
+        style: TextStyle(color: Colors.black),
+      ),
+    ),
+    const PopupMenuItem(
+      value: 'logout',
+      child: Text(
+        'Log out',
+        style: TextStyle(color: Colors.black),
+      ),
+    ),
+  ],
+  elevation: 8.0,
+)
+.then((value) {
       if (value != null) {
         if (value == 'logout') {
           _handleLogout(context); // Handle the logout logic

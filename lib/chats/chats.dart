@@ -97,6 +97,14 @@ void fetchUsers() async {
         _onNewMessageReceived(message); // Update notifier
       },
     );
+
+    chatRepository.listenToPostSse(
+      activeInboxIds,
+      widget.myUserId,
+      (Map<String, dynamic> message) {
+        _onNewMessageReceived(message); // Update notifier
+      },
+    );
   } catch (e) {
     setState(() {
       error = 'Failed to load users';

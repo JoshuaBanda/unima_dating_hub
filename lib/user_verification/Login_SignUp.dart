@@ -6,6 +6,9 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '/home/home.dart'; // Update this import based on your actual home screen import
 import 'sign_up.dart'; // Ensure the sign up page is correctly imported
 import 'email_input.dart'; // Ensure the forgot password screen is correctly imported
+import 'policy_page.dart';
+
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,7 +26,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final String _apiUrl = 'https://datehubbackend.onrender.com/users/login';
+  final String _apiUrl = 'https://datehubbackend.onrender.com/users/logi-n';
 
   @override
   Widget build(BuildContext context) {
@@ -44,137 +47,180 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 Container(
                   child: Text(
-                    'UNIMA DATING HUB',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: const Color.fromARGB(255, 214, 53, 25), // Red color
+                    "Unima Dating Hub", // Text displayed on top
+                    style: GoogleFonts.sourceSansPro(
+                      textStyle: TextStyle(
+                        foreground: Paint()
+                          ..shader = LinearGradient(
+                            colors: [
+                              Colors.pink,
+                              const Color.fromARGB(255, 253, 183, 77),
+                              Colors.red
+                            ],
+                          ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                        fontStyle: FontStyle.normal,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: emailController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter email',
-                          filled: true,
-                          fillColor: Colors.white,
-                          enabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          errorText: _errorMessage.isNotEmpty ? 'Invalid email or password' : null,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter an email';
-                          }
-                          if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value)) {
-                            return 'Enter a valid email address';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      
-                      TextFormField(
-                        controller: passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          hintText: 'Enter password',
-                          filled: true,
-                          fillColor: Colors.white,
-                          enabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a password';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      
-                      if (_errorMessage.isNotEmpty)
-                        Text(
-                          _errorMessage,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      SizedBox(height: screenHeight * 0.02),
-                      
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 235, 72, 44), // Red color for the button
-                          minimumSize: Size(screenWidth * 0.6, 50),
-                        ),
-                        child: _isLoading
-                            ? const SpinKitFadingCircle(color: Colors.grey, size: 50.0)
-                            : const Text('LOG IN', style: TextStyle(color: Colors.white)),
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      
-                      // Forgot Password Button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => EnterEmailScreen()), // Navigate to Forgot Password screen
-                              );
-                            },
-                            child: Text(
-                              'Forgot Password?',
-                              style: TextStyle(color: Colors.blue[700]),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: screenHeight * 0.02), // Extra spacing to ensure visibility
 
-                      // Sign Up Button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                // Card containing the email and password fields
+                Card(
+                  elevation: 2, // Adds a shadow effect to the card
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15), // Rounded corners
+                  ),
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
                         children: [
-                          const Text('Don\'t have an account? ', style: TextStyle(color: Colors.grey)),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => SignUpPage()), // Navigate to Sign Up screen
-                              );
-                            },
-                            child: Text(
-                              'Sign Up',
-                              style: TextStyle(color: Colors.grey[900]),
+                          // Display error message at the top of the card
+                          if (_errorMessage.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 15.0),
+                              child: Text(
+                                _errorMessage,
+                                style: const TextStyle(color: Colors.red),
+                              ),
                             ),
+
+                          TextFormField(
+                            controller: emailController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter email',
+                              filled: true,
+                              fillColor: Colors.white,
+                              enabledBorder: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Colors.grey), // Grey border
+                                borderRadius: BorderRadius.circular(5), // Rectangular corners
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Colors.green), // Green border when focused
+                                borderRadius: BorderRadius.circular(5), // Rectangular corners
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter an email';
+                              }
+                              if (!RegExp(
+                                      r"^[a-zA-Z0-9._%+-]+@[a-zA0-9.-]+\.[a-zA-Z]{2,}$")
+                                  .hasMatch(value)) {
+                                return 'Enter a valid email address';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: screenHeight * 0.02),
+
+                          TextFormField(
+                            controller: passwordController,
+                            obscureText: !_isPasswordVisible,
+                            decoration: InputDecoration(
+                              hintText: 'Enter password',
+                              filled: true,
+                              fillColor: Colors.white,
+                              enabledBorder: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Colors.grey), // Grey border
+                                borderRadius: BorderRadius.circular(5), // Rectangular corners
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Colors.green), // Green border when focused
+                                borderRadius: BorderRadius.circular(5), // Rectangular corners
+                              ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a password';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: screenHeight * 0.02),
+
+                          // Row with Log In and Sign Up buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _isLoading ? null : _login,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromARGB(
+                                      255, 235, 72, 44), // Red color for the button
+                                  minimumSize: Size(screenWidth * 0.29, 50),
+                                ),
+                                child: _isLoading
+                                    ? const SpinKitFadingCircle(
+                                        color: Colors.grey, size: 50.0)
+                                    : const Text('LOG IN',
+                                        style: TextStyle(color: Colors.white)),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>PolicyPage())
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromARGB(255, 255, 255, 255), // Red color for the button
+                                  minimumSize: Size(screenWidth * 0.25, 50),
+                                ),
+                                child: const Text(
+                                  'SIGN UP',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: screenHeight * 0.02),
+
+                          // Forgot Password Button
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            EnterEmailScreen()), // Navigate to Forgot Password screen
+                                  );
+                                },
+                                child: Text(
+                                  'Forgot Password?',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -204,15 +250,18 @@ class _LoginPageState extends State<LoginPage> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           final responseData = jsonDecode(response.body);
+          print("$responseData");
 
           // Extracting the necessary data from the response
           final String token = responseData['result']['access_token'];
-          final String currentUserId = responseData['user']['userid'].toString();
+          final String currentUserId =
+              responseData['user']['userid'].toString();
           final String currentUserEmail = responseData['user']['email'];
           final String firstName = responseData['user']['firstname'];
           final String lastName = responseData['user']['lastname'];
           final String profilePicture = responseData['user']['profilepicture'];
-          final bool activationStatus = responseData['user']['activationstatus'];
+          final bool activationStatus =
+              responseData['user']['activationstatus'];
 
           // Securely store the token, user id, email, first name, last name, profile picture, and activation status
           await _storage.write(key: 'jwt_token', value: token);
@@ -221,7 +270,8 @@ class _LoginPageState extends State<LoginPage> {
           await _storage.write(key: 'firstname', value: firstName);
           await _storage.write(key: 'lastname', value: lastName);
           await _storage.write(key: 'profilepicture', value: profilePicture);
-          await _storage.write(key: 'activationstatus', value: activationStatus.toString());
+          await _storage.write(
+              key: 'activationstatus', value: activationStatus.toString());
 
           // Navigate to the FarmSmartScreen with the necessary data
           Navigator.pushReplacement(

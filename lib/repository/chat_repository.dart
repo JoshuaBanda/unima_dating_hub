@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '/localDataBase/local_database.dart'; // Import the LocalDatabase class
 import 'package:unima_dating_hub/notifications/notification_service.dart';
+import 'package:unima_dating_hub/notifications/post_notifications_service.dart';
 
 class ChatRepository {
   final String apiUrl;
@@ -163,99 +164,100 @@ class ChatRepository {
 
   // Save received message to the local database
   Future<void> saveReceivedMessage(
-    String inboxId, Map<String, dynamic> message) async {
-  try {
-    // Ensure inboxId and userId are converted to strings if they're integers
-    String inboxIdStr = inboxId.toString();
-    String userIdStr = message['userid'].toString(); // Convert userid to string
-    String messageText = message['message'] ?? ''; // Safeguard in case 'message' is null
+      String inboxId, Map<String, dynamic> message) async {
+    try {
+      // Ensure inboxId and userId are converted to strings if they're integers
+      String inboxIdStr = inboxId.toString();
+      String userIdStr =
+          message['userid'].toString(); // Convert userid to string
+      String messageText =
+          message['message'] ?? ''; // Safeguard in case 'message' is null
 
-    // Save the message in the local database
-    await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText);
+      // Save the message in the local database
+      await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText);
 
-    // Now, update the last message cache for the given inbox
-    _updateLastMessageCache(inboxIdStr, message);
-  } catch (e) {
-    print("Error saving received message: $e");
+      // Now, update the last message cache for the given inbox
+      _updateLastMessageCache(inboxIdStr, message);
+    } catch (e) {
+      print("Error saving received message: $e");
+    }
   }
-}
 
-void handleSseMessage(
-  Map<String, dynamic> message,
-  List<String> activeInboxIds,
-  String currentUserId
-) async {
-  try {
-    String inboxId = message['inboxid'].toString();
-    print("Inbox ID: $inboxId");
+  void handleSseMessage(Map<String, dynamic> message,
+      List<String> activeInboxIds, String currentUserId) async {
+    try {
+      String inboxId = message['inboxid'].toString();
+      print("Inbox ID: $inboxId");
 
-    if (activeInboxIds.contains(inboxId)) {
-      print("Message belongs to an active inbox.");
+      if (activeInboxIds.contains(inboxId)) {
+        print("Message belongs to an active inbox.");
 
-      // Now, instead of skipping messages from the current user, allow them to be saved
-      bool messageExists = await _checkMessageExists(inboxId, message);
-      print("Message exists in local storage: $messageExists");
+        // Now, instead of skipping messages from the current user, allow them to be saved
+        bool messageExists = await _checkMessageExists(inboxId, message);
+        print("Message exists in local storage: $messageExists");
 
-      if (!messageExists) {
-        print("Message does not exist. Saving it.");
-        await saveReceivedMessage(inboxId, message);
-        _updateLastMessageCache(inboxId, message);
+        if (!messageExists) {
+          print("Message does not exist. Saving it.");
+          await saveReceivedMessage(inboxId, message);
+          _updateLastMessageCache(inboxId, message);
 
-        // Fetch user information (first name, last name, profile photo) for the sender
-        List<dynamic> users = await ChatRepository.fetchUsersToMemory(currentUserId);
-        Map<String, dynamic>? sender = users.firstWhere(
-            (user) => user['userid'].toString() == message['userid'].toString(),
-            orElse: () => null);
+          // Fetch user information (first name, last name, profile photo) for the sender
+          List<dynamic> users =
+              await ChatRepository.fetchUsersToMemory(currentUserId);
+          Map<String, dynamic>? sender = users.firstWhere(
+              (user) =>
+                  user['userid'].toString() == message['userid'].toString(),
+              orElse: () => null);
 
-        // If sender is unknown, do not show notification
-        if (sender == null) {
-          print("Sender is unknown, not showing notification.");
-          return;
-        }
+          // If sender is unknown, do not show notification
+          if (sender == null) {
+            print("Sender is unknown, not showing notification.");
+            return;
+          }
 
-        // If the sender is the current user, do not show notification
-        if ((message['userid']).toString() == currentUserId) {
-          print("Sender is the current user, not showing notification.");
+          // If the sender is the current user, do not show notification
+          if ((message['userid']).toString() == currentUserId) {
+            print("Sender is the current user, not showing notification.");
+          } else {
+            // If the message is not from the current user, show the notification
+            String senderName = '${sender['firstname']} ${sender['lastname']}';
+            String senderProfilePhoto = sender != null &&
+                    sender['profilepicture'] != null &&
+                    sender['profilepicture'] != ''
+                ? '${sender['profilepicture']}'
+                : 'default_profile_photo_url'; // Provide a default URL if not available
+
+            // Generate unique notification ID (based on time)
+            String notificationId =
+                (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
+
+            // Show the notification with profile image and dynamic ID
+            print("Showing notification: $senderName - ${message['message']}");
+            await NotificationService.showNotification(
+              senderName, // Title
+              message['message'] ?? 'No message content', // Body
+              senderProfilePhoto, // Profile photo URL
+              message['userid'].toString(), // User ID
+              notificationId, // Notification ID (this is the dynamic ID)
+              currentUserId, // Current User ID
+              sender['firstname'] ?? 'First Name', // Sender's First Name
+              sender['lastname'] ?? 'Last Name', // Sender's Last Name
+              inboxId, // Passing inboxId here from the SSE message
+            );
+
+            print("$senderName $notificationId $inboxId");
+            print("Notification sent: $senderName - ${message['message']}");
+          }
         } else {
-          // If the message is not from the current user, show the notification
-          String senderName = '${sender['firstname']} ${sender['lastname']}';
-          String senderProfilePhoto = sender != null &&
-                  sender['profilepicture'] != null &&
-                  sender['profilepicture'] != ''
-              ? '${sender['profilepicture']}'
-              : 'default_profile_photo_url'; // Provide a default URL if not available
-
-          // Generate unique notification ID (based on time)
-          String notificationId = (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
-
-          // Show the notification with profile image and dynamic ID
-          print("Showing notification: $senderName - ${message['message']}");
-          await NotificationService.showNotification(
-            senderName, // Title
-            message['message'] ?? 'No message content', // Body
-            senderProfilePhoto, // Profile photo URL
-            message['userid'].toString(), // User ID
-            notificationId, // Notification ID (this is the dynamic ID)
-            currentUserId, // Current User ID
-            sender['firstname'] ?? 'First Name', // Sender's First Name
-            sender['lastname'] ?? 'Last Name', // Sender's Last Name
-            inboxId, // Passing inboxId here from the SSE message
-          );
-
-          print("$senderName $notificationId $inboxId");
-          print("Notification sent: $senderName - ${message['message']}");
+          print("Message already exists, not saving.");
         }
       } else {
-        print("Message already exists, not saving.");
+        print("Message does not belong to any active inbox.");
       }
-    } else {
-      print("Message does not belong to any active inbox.");
+    } catch (e) {
+      print("Error handling SSE message: $e");
     }
-  } catch (e) {
-    print("Error handling SSE message: $e");
   }
-}
-
 
   // Check if the message already exists in local storage
   Future<bool> _checkMessageExists(
@@ -282,79 +284,232 @@ void handleSseMessage(
   }
 
   // Listen to SSE (Server-Sent Events) and save new messages to the local database
-  
+
 // The updated function definition
-void listenToSse(
-  List<String> inboxIds,
-  String userId,
-  void Function(Map<String, dynamic>) onNewMessage,
-) async {
-  try {
-    final uri = Uri.parse('$apiUrl/message/event');
-    print("Initiating SSE connection to: $uri");
+  void listenToSse(
+    List<String> inboxIds,
+    String userId,
+    void Function(Map<String, dynamic>) onNewMessage,
+  ) async {
+    try {
+      final uri = Uri.parse('$apiUrl/message/event');
+      print("Initiating SSE connection to: $uri");
 
-    final client = http.Client();
-    final request = http.Request('GET', uri);
-    request.headers.addAll({
-      'Accept': 'text/event-stream',
-    });
+      final client = http.Client();
+      final request = http.Request('GET', uri);
+      request.headers.addAll({
+        'Accept': 'text/event-stream',
+      });
 
-    final streamedResponse = await client.send(request);
+      final streamedResponse = await client.send(request);
 
-    if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
-      print("SSE connection established successfully.");
-      final eventStream = streamedResponse.stream;
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
+        print("SSE connection established successfully.");
+        final eventStream = streamedResponse.stream;
 
-      // Listen for incoming events
-      await for (var chunk in eventStream) {
-        String chunkString = utf8.decode(chunk);
-        print("Received chunk: $chunkString");
+        // Listen for incoming events
+        await for (var chunk in eventStream) {
+          String chunkString = utf8.decode(chunk);
+          print("Received k chunk: $chunkString");
 
-        List<String> events = chunkString.split('\n');
-        for (var event in events) {
-          if (event.isNotEmpty) {
-            try {
-              if (event.startsWith('data:')) {
-                String dataString = event.substring(5).trim();
-                final message = json.decode(dataString);
+          List<String> events = chunkString.split('\n');
+          for (var event in events) {
+            if (event.isNotEmpty) {
+              try {
+                if (event.startsWith('data:')) {
+                  String dataString = event.substring(5).trim();
+                  final message = json.decode(dataString);
 
-                print("Processing event: $message");
+                  print("Processing event: $message");
 
-                if (message is List &&
-                    message.isNotEmpty &&
-                    message[0].containsKey('inboxid') &&
-                    message[0].containsKey('message')) {
-                  print("Triggering onNewMessage callback...");
-                  onNewMessage(message[0]); // Trigger the callback
+                  if (message is List &&
+                      message.isNotEmpty &&
+                      message[0].containsKey('inboxid') &&
+                      message[0].containsKey('message')) {
+                    print("Triggering onNewMessage callback...");
+                    onNewMessage(message[0]); // Trigger the callback
 
-                  // Call handleSseMessage here, passing the message and other required parameters
-                  print("Calling handleSseMessage...");
-                  handleSseMessage(message[0], inboxIds, userId); // <-- This is where we call handleSseMessage
+                    // Call handleSseMessage here, passing the message and other required parameters
+                    print("Calling handleSseMessage...");
+                    handleSseMessage(message[0], inboxIds,
+                        userId); // <-- This is where we call handleSseMessage
 
-                  print("handleSseMessage has been called.");
-                  print("onNewMessage callback triggered.");
-                } else {
-                  print("Invalid message structure: $message");
+                    print("handleSseMessage has been called.");
+                    print("onNewMessage callback triggered.");
+                  } else {
+                    print("Invalid message structure: $message");
+                  }
                 }
+              } catch (e) {
+                print("Error decoding event: $e");
               }
-            } catch (e) {
-              print("Error decoding event: $e");
             }
           }
         }
+      } else {
+        print(
+            "Error in SSE connection. Status code: ${streamedResponse.statusCode}");
       }
-    } else {
-      print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+    } catch (e) {
+      print("Error listening to SSE: $e");
+
+      // Retry logic with a delay
+      print("Retrying SSE connection...");
+      await Future.delayed(Duration(seconds: 5));
+      listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
     }
-  } catch (e) {
-    print("Error listening to SSE: $e");
-
-    // Retry logic with a delay
-    print("Retrying SSE connection...");
-    await Future.delayed(Duration(seconds: 5));
-    listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
   }
-}
+
+  void handleSsePosts(Map<String, dynamic> post, String currentUserId) async {
+    try {
+      // Fetch user information (first name, last name, profile photo) for the sender
+      List<dynamic> users =
+          await ChatRepository.fetchUsersToMemory(currentUserId);
+      Map<String, dynamic>? sender = users.firstWhere(
+          (user) => user['userid'].toString() == post['user_id'].toString(),
+          orElse: () => null);
+
+      // If sender is unknown, do not show notification
+      if (sender == null) {
+        print("Sender is unknown, not showing notification.");
+        return;
+      }
+
+      // If the post is from the current user, do not show a notification
+      //will change the userid to user_id letter
+      if ((post['userid']).toString() == currentUserId) {
+        print("Sender is the current user, not showing notification.");
+      } else {
+        // If the message is not from the current user, show the notification
+        String senderName = '${sender['firstname']} ${sender['lastname']}';
+        String senderProfilePhoto = sender != null &&
+                sender['profilepicture'] != null &&
+                sender['profilepicture'] != ''
+            ? '${sender['profilepicture']}'
+            : 'default_profile_photo_url'; // Provide a default URL if not available
+
+        // Generate a unique notification ID (based on time)
+        String notificationId =
+            (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
+
+        // Show the notification with profile image and dynamic ID
+        print("Showing notification: $senderName - ${post['description']}");
+        /*await PostNotificationsService.showNotification(
+          senderName, // Title
+          post['description'] ?? 'No post desription content', // Body
+          senderProfilePhoto, // Profile photo URL
+          post['userid'].toString(), // User ID
+          notificationId, // Notification ID (this is the dynamic ID)
+          currentUserId, // Current User ID
+          sender['firstname'] ?? 'First Name', // Sender's First Name
+          sender['lastname'] ?? 'Last Name', // Sender's Last Name
+          "1",
+        );*/
+        await PostNotificationsService.showNotification(
+          'New Post Title', // Title
+          post['description'], // Body
+          post['photo_url'], // Photo URL
+          post['post_id'].toString(), // Post ID
+          post['user_id'].toString(), // User ID
+          senderName,
+          senderProfilePhoto,
+          post['created_at'], // Created At (use appropriate format)
+        );
 
 
+        print("Notification sent: $senderName - ${post['descripyion']}");
+      }
+    } catch (e) {
+      print("Error handling SSE post: $e");
+    }
+  }
+
+// The updated function definition
+  void listenToPostSse(
+    List<String> inboxIds,
+    String userId,
+    void Function(Map<String, dynamic>) onNewPost,
+  ) async {
+    print("Initializing SSE connection...");
+    try {
+      final uri = Uri.parse('$apiUrl/message/eventS');
+      print("Initiating SSE connection to: $uri");
+
+      final client = http.Client();
+      final request = http.Request('GET', uri);
+      request.headers.addAll({'Accept': 'text/event-stream'});
+
+      final streamedResponse = await client.send(request);
+
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
+        print("SSE connection established successfully.");
+        final eventStream = streamedResponse.stream;
+
+        // Listen for incoming events
+        await for (var chunk in eventStream) {
+          String chunkString = utf8.decode(chunk);
+          print("Received post chunk: $chunkString");
+
+          List<String> events = chunkString.split('\n');
+          for (var event in events) {
+            if (event.isNotEmpty) {
+              try {
+                if (event.startsWith('data:')) {
+                  String dataString = event.substring(5).trim();
+                  final post = json.decode(dataString);
+
+                  print("Processing event: $post");
+
+                  // Ensure that post is a list and check its content
+                  if (post is List && post.isNotEmpty) {
+                    final firstPost = post[0];
+
+                    // Debug print the firstPost object to ensure the expected structure
+                    print("First post object: $firstPost");
+
+                    // Check if the required keys are in the post object
+                    if (firstPost.containsKey('post_id') &&
+                        firstPost.containsKey('description') &&
+                        firstPost.containsKey('photo_url') &&
+                        firstPost.containsKey('user_id') &&
+                        firstPost.containsKey('created_at')) {
+                      print(
+                          "Valid message structure. Triggering onNewPost callback...");
+                      onNewPost(firstPost); // Trigger the callback
+
+                      // Call handleSsePosts to process further
+                      print("Calling handleSsePosts...");
+                      handleSsePosts(firstPost, userId);
+
+                      print("handleSsePosts called.");
+                      print("onNewPost callback triggered.");
+                    } else {
+                      print("Invalid post structure. Missing required keys.");
+                      print("Post structure: $firstPost");
+                    }
+                  } else {
+                    print("Invalid message structure: $post");
+                  }
+                }
+              } catch (e) {
+                print("Error decoding event: $e");
+              }
+            }
+          }
+        }
+      } else {
+        print(
+            "Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+      }
+    } catch (e) {
+      print("Error listening to SSE: $e");
+
+      // Retry logic with a delay
+      print("Retrying SSE connection...");
+      await Future.delayed(Duration(seconds: 5));
+      listenToPostSse(inboxIds, userId, onNewPost); // Retry the connection
+    }
+  }
 }

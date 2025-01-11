@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'update_password_page.dart';  // Import your UpdatePasswordPage
+import 'update_password_page.dart'; // Import your UpdatePasswordPage
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'dart:async';
 
@@ -10,7 +10,8 @@ class NewPasswordVerification extends StatefulWidget {
   const NewPasswordVerification({super.key, required this.email});
 
   @override
-  _NewPasswordVerificationState createState() => _NewPasswordVerificationState();
+  _NewPasswordVerificationState createState() =>
+      _NewPasswordVerificationState();
 }
 
 class _NewPasswordVerificationState extends State<NewPasswordVerification> {
@@ -55,43 +56,73 @@ class _NewPasswordVerificationState extends State<NewPasswordVerification> {
       print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        // If the response body is empty, still proceed to the next steps
+        try {
+          if (response.body.isNotEmpty) {
+            final Map<String, dynamic> responseData = jsonDecode(response.body);
+            final bool? activationStatus = responseData['activationstatus'];
 
-        final bool? activationStatus = responseData['activationstatus'];
+            if (activationStatus != null && activationStatus) {
+              final user = responseData; // Directly use the response data
 
-        if (activationStatus != null && activationStatus) {
-          final user = responseData; // Directly use the response data
-          
-          // Extract user data
-          final String userId = user['userid'].toString();
-          final String firstName = user['firstname'];
-          final String lastName = user['lastname'];
-          final String profilePicture = user['profilepicture'];
-          final String email = user['email'];
+              // Extract user data
+              final String userId = user['userid'].toString();
+              final String firstName = user['firstname'];
+              final String lastName = user['lastname'];
+              final String profilePicture = user['profilepicture'];
+              final String email = user['email'];
 
-          // Pass user data to UpdatePasswordPage
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UpdatePasswordPage(
-                email: widget.email,
-                userId: userId,
-                firstName: firstName,
-                lastName: lastName,
-                profilePicture: profilePicture,
-                activationStatus: activationStatus,
+              // Pass user data to UpdatePasswordPage
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UpdatePasswordPage(
+                    email: widget.email,
+                    userId: userId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    profilePicture: profilePicture,
+                    activationStatus: activationStatus,
+                  ),
+                ),
+              );
+            } else {
+              setState(() {
+                _message = "Your account is not activated yet.";
+                _isLoading = false;
+              });
+            }
+          } else {
+            // If the response body is empty, continue without the user data
+            setState(() {
+              _message = "OTP verified successfully, but no data received.";
+              _isLoading = false;
+            });
+            // Proceed with your desired flow even if no user data is available
+            // For example, navigate to UpdatePasswordPage or some other page
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UpdatePasswordPage(
+                  email: widget.email, // Pass the email for password reset
+                  userId: "",  // You can pass an empty string or null if no user data
+                  firstName: "",
+                  lastName: "",
+                  profilePicture: "",
+                  activationStatus: false, // You can set the default value if necessary
+                ),
               ),
-            ),
-          );
-        } else {
+            );
+          }
+        } catch (e) {
           setState(() {
-            _message = "Your account is not activated yet.";
+            _message = "Error decoding response: $e";
             _isLoading = false;
           });
         }
       } else {
         setState(() {
-          _message = "Failed to verify OTP.";
+          _message = "Failed to verify OTP. Please try again.";
           _isLoading = false;
         });
       }

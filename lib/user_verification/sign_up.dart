@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'otp_request_screen.dart'; // Import OTP request screen
 import 'Login_SignUp.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -36,13 +37,27 @@ class _SignUpPageState extends State<SignUpPage> {
               children: [
                 const SizedBox(height: 20),
                 Text(
-                  "Create a new account",
-                  style: TextStyle(fontSize: screenWidth * 0.05, color: Colors.red),
-                ),
+                    "Create Account", // Text displayed on top
+                    style: GoogleFonts.sourceSansPro(
+                      textStyle: TextStyle(
+                        foreground: Paint()
+                          ..shader = LinearGradient(
+                            colors: [
+                              Colors.pink,
+                              const Color.fromARGB(255, 253, 183, 77),
+                              Colors.red
+                            ],
+                          ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                        fontStyle: FontStyle.normal,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 50),
                 Form(
                   key: _formKey,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  autovalidateMode: AutovalidateMode.disabled, // Only validate on submit
                   child: Column(
                     children: [
                       _buildTextField(
@@ -51,6 +66,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your first name';
+                          }
+                          if (value.length > 50) {
+                            return 'First name should not be too long';
+                          }
+                          if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
+                            return 'Please enter a valid name (letters only)';
                           }
                           return null;
                         },
@@ -63,6 +84,12 @@ class _SignUpPageState extends State<SignUpPage> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your last name';
                           }
+                          if (value.length > 50) {
+                            return 'Last name should not be too long';
+                          }
+                          if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
+                            return 'Please enter a valid name (letters only)';
+                          }
                           return null;
                         },
                       ),
@@ -74,9 +101,8 @@ class _SignUpPageState extends State<SignUpPage> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter an email';
                           }
-                          if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-                              .hasMatch(value)) {
-                            return 'Enter a valid email address';
+                          if (!RegExp(r"^[a-zA-Z0-9._%+-]+@unima\.ac\.mw$").hasMatch(value)) {
+                            return 'Please enter a valid school email (ending with @unima.ac.mw)';
                           }
                           return null;
                         },
@@ -106,12 +132,12 @@ class _SignUpPageState extends State<SignUpPage> {
                       ElevatedButton(
                         onPressed: _isLoading ? null : _signUp,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          minimumSize: Size(screenWidth * 0.8, 50),
+                          backgroundColor: Colors.white,
+                          minimumSize: Size(screenWidth * 0.4, 50),
                         ),
                         child: _isLoading
                             ? const SpinKitFadingCircle(color: Colors.grey, size: 50.0)
-                            : const Text('SIGN UP', style: TextStyle(color: Colors.white)),
+                            : const Text('SIGN UP', style: TextStyle(color: Colors.red)),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -157,10 +183,10 @@ class _SignUpPageState extends State<SignUpPage> {
         hintText: hintText,
         filled: true,
         fillColor: Colors.white,
-        enabledBorder: const UnderlineInputBorder(
+        enabledBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Colors.grey),
         ),
-        focusedBorder: const UnderlineInputBorder(
+        focusedBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: Colors.green),
         ),
       ),
@@ -175,9 +201,6 @@ class _SignUpPageState extends State<SignUpPage> {
         _isLoading = true;  // Show spinner
         _errorMessage = '';  // Reset error message
       });
-
-      // Assuming that the sign-up is successful without making an API request
-      // You can directly pass the values to the OTP screen here
 
       // Simulate a successful sign-up (you can remove this part if you're connecting to a backend)
       await Future.delayed(const Duration(seconds: 2));

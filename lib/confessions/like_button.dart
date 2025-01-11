@@ -3,14 +3,14 @@ import 'api_service.dart'; // Ensure this is properly importing your ApiService 
 
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 class LikeButton extends StatefulWidget {
-  final int postId;
+  final int confessionId;
   final int userId;
   final String jwtToken;
   final int initialLikeCount; // Initial like count
   final bool initialLikeStatus; // Initial like status (liked or not)
 
   const LikeButton({
-    required this.postId,
+    required this.confessionId,
     required this.userId,
     required this.jwtToken,
     required this.initialLikeCount,
@@ -47,15 +47,15 @@ class _LikeButtonState extends State<LikeButton> {
       });
 
       // Fetch the like count from the API
-      final fetchedLikeCount = await apiService.fetchLikesForPost(
+      final fetchedLikeCount = await apiService.fetchLikesForConfession(
         jwtToken: widget.jwtToken,
-        postId: widget.postId,
+        confessionId: widget.confessionId,
       );
 
       // Fetch the like status for the current user
-      final fetchedIsLiked = await apiService.isUserLikedPost(
+      final fetchedIsLiked = await apiService.isUserLikedConfession(
         jwtToken: widget.jwtToken,
-        postId: widget.postId,
+        confessionId: widget.confessionId,
         userId: widget.userId,
       );
 
@@ -65,19 +65,19 @@ class _LikeButtonState extends State<LikeButton> {
         isLoading = false;  // Stop loading
       });
 
-      //print("Like count: $likeCount, Is liked: $isLiked");
+      print("Like count: $likeCount, Is liked: $isLiked");
 
     } catch (e) {
       setState(() {
         isLoading = false;  // Stop loading
       });
-      //print("Error fetching like data: $e");
+      print("Error fetching like data: $e");
       // Show error message to the user
       _showErrorSnackbar("Failed to load like data. Please try again.");
     }
   }
 
-  // Toggle like/unlike the post
+  // Toggle like/unlike the confession
   void _toggleLike() async {
     if (isLoading) return; // Prevent multiple presses while loading
     setState(() {
@@ -86,10 +86,10 @@ class _LikeButtonState extends State<LikeButton> {
 
     try {
       if (isLiked) {
-        // Attempt to unlike the post
-        bool success = await apiService.unlikePost(
+        // Attempt to unlike the confession
+        bool success = await apiService.unlikeConfession(
           jwtToken: widget.jwtToken,
-          postId: widget.postId,
+          confessionId: widget.confessionId,
           userId: widget.userId,
         );
 
@@ -99,13 +99,13 @@ class _LikeButtonState extends State<LikeButton> {
             likeCount--;
           });
         } else {
-          _showErrorSnackbar('Failed to unlike the post');
+          _showErrorSnackbar('Failed to unlike the confes');
         }
       } else {
-        // Attempt to like the post
-        bool success = await apiService.likePost(
+        // Attempt to like the confession
+        bool success = await apiService.likeConfession(
           jwtToken: widget.jwtToken,
-          postId: widget.postId,
+          confessionId: widget.confessionId,
           userId: widget.userId,
         );
 
@@ -115,7 +115,7 @@ class _LikeButtonState extends State<LikeButton> {
             likeCount++;
           });
         } else {
-          _showErrorSnackbar('Failed to like the post');
+          _showErrorSnackbar('Failed to like the confession');
         }
       }
     } catch (e) {

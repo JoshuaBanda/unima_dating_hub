@@ -57,10 +57,10 @@ class _PostItemState extends State<PostItem> {
         likeCount = fetchedLikeCount;
         isLiked = fetchedIsLiked;
       });
-      print("like count $likeCount   is liked $isLiked");
+     // print("like count $likeCount   is liked $isLiked");
 
     } catch (e) {
-      print("Error fetching like data: $e");
+     // print("Error fetching like data: $e");
       // Show error message to the user
       _showErrorMessage("Failed to load like data. Please try again.");
     }
@@ -258,7 +258,7 @@ class _PostItemState extends State<PostItem> {
               IconButton(
                 icon: Icon(
                   Icons.comment,
-                  color: Colors.redAccent,
+                  color: Colors.grey[500],
                 ),
                 onPressed: () {
                   showDialog(
@@ -276,7 +276,7 @@ class _PostItemState extends State<PostItem> {
           ),
         ),
         Divider(
-          thickness: 1,
+          thickness: 2,
           color: Colors.grey[300],
         ),
       ],

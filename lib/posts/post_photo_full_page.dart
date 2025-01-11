@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:ui'; // For BackdropFilter
 import 'comment_dialog.dart'; // Import the CommentDialog
+import 'like_button.dart'; // Import the LikeButton
 
 class PostPhotoFullPage extends StatefulWidget {
   final String? imageUrl;
@@ -37,18 +38,11 @@ class _PostPhotoFullPageState extends State<PostPhotoFullPage> {
     isLiked = widget.isLiked;
   }
 
-  // Toggle like state
-  void _toggleLike() {
-    setState(() {
-      isLiked = !isLiked;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final String imageToShow = (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) 
-      ? widget.imageUrl! 
-      : 'assets/default_profile.jpg';  // Fallback to the default image
+    final String imageToShow = (widget.imageUrl != null && widget.imageUrl!.isNotEmpty)
+        ? widget.imageUrl!
+        : 'assets/default_profile.jpg'; // Fallback to the default image
 
     return Scaffold(
       body: Stack(
@@ -104,40 +98,33 @@ class _PostPhotoFullPageState extends State<PostPhotoFullPage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 10),
-                // Like Button
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        isLiked ? Icons.thumb_up : Icons.thumb_up_off_alt,
-                        color: isLiked ? Colors.blue : Colors.white,
+                // Like Button - Use the LikeButton widget
+                LikeButton(
+                  postId: widget.postId,
+                  userId: widget.currentUserId,
+                  jwtToken: widget.jwtToken,
+                  initialLikeCount: 0, // Set an initial like count if necessary
+                  initialLikeStatus: widget.isLiked, // Use the current like status
+                ),
+                SizedBox(height: 10),
+                // Comment Button
+                IconButton(
+                  icon: Icon(
+                    Icons.comment,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    // Open CommentDialog just as in the PostItem widget
+                    showDialog(
+                      context: context,
+                      builder: (context) => CommentDialog(
+                        postId: widget.postId,
+                        currentUserId: widget.currentUserId,
+                        currentEmail: widget.currentEmail,
+                        jwtToken: widget.jwtToken, // Pass jwtToken to CommentDialog
                       ),
-                      onPressed: _toggleLike,
-                    ),
-                    Text(
-                      isLiked ? "Liked" : "Like",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    Spacer(),
-                    IconButton(
-                      icon: Icon(
-                        Icons.comment,
-                        color: Colors.white,
-                      ),
-                      onPressed: () {
-                        // Open CommentDialog just as in the PostItem widget
-                        showDialog(
-                          context: context,
-                          builder: (context) => CommentDialog(
-                            postId: widget.postId,
-                            currentUserId: widget.currentUserId,
-                            currentEmail: widget.currentEmail,
-                            jwtToken: widget.jwtToken, // Pass jwtToken to CommentDialog
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ],
             ),

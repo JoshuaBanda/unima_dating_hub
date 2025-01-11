@@ -8,6 +8,8 @@ import 'comment_dialog.dart';
 import 'package:unima_dating_hub/chats/full_screen_image_page.dart';
 import 'report_page.dart';
 import 'confession_photo_full_page.dart';
+import 'like_button.dart'; // Import the LikeButton widget
+import 'api_service.dart'; // Import the ApiService
 
 class ConfessionItem extends StatefulWidget {
   final Confession confession;
@@ -29,6 +31,52 @@ class ConfessionItem extends StatefulWidget {
 
 class _ConfessionItemState extends State<ConfessionItem> {
   bool isLiked = false;
+  int likeCount = 0; // Variable to hold the like count
+  final ApiService apiService = ApiService();
+
+  // Method to fetch like count and status for the current confession
+  void _fetchLikeData() async {
+    try {
+      // Fetch the like count from the API
+      final fetchedLikeCount = await apiService.fetchLikesForConfession(
+        jwtToken: widget.jwtToken,
+        confessionId: widget.confession.confessionId,
+      );
+
+      // Fetch the like status for the current user
+      final fetchedIsLiked = await apiService.isUserLikedConfession(
+        jwtToken: widget.jwtToken,
+        confessionId: widget.confession.confessionId,
+        userId: widget.currentUserId,
+      );
+
+      setState(() {
+        likeCount = fetchedLikeCount;
+        isLiked = fetchedIsLiked;
+      });
+      print("like count $likeCount   is liked $isLiked");
+
+    } catch (e) {
+      print("Error fetching like data: $e");
+      _showErrorMessage("Failed to load like data. Please try again.");
+    }
+  }
+
+  // Display a snackbar for error handling
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLikeData(); // Fetch the like data when the widget is initialized
+  }
 
   String _formatDate(DateTime date) {
     final adjustedDate = date.add(const Duration(hours: 2));
@@ -68,9 +116,7 @@ class _ConfessionItemState extends State<ConfessionItem> {
   @override
   Widget build(BuildContext context) {
     String profileImage = "https://res.cloudinary.com/dfahzd3ky/image/upload/v1734980866/farmsmart/mask.jpg.jpg";
-
-    bool isValidUrl = profileImage.startsWith('http://') ||
-        profileImage.startsWith('https://');
+    bool isValidUrl = profileImage.startsWith('http://') || profileImage.startsWith('https://');
     if (!isValidUrl) {
       profileImage = 'assets/default_profile.png';
     }
@@ -126,16 +172,13 @@ class _ConfessionItemState extends State<ConfessionItem> {
                   }
                 },
                 itemBuilder: (BuildContext context) => [
-                  PopupMenuItem<String>(
-                    value: 'report',
-                    child: Row(
-                      children: const [
-                        Icon(Icons.report, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Report Confession'),
-                      ],
-                    ),
-                  ),
+                  PopupMenuItem<String>(value: 'report', child: Row(
+                    children: const [
+                      Icon(Icons.report, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Report Confession'),
+                    ],
+                  )),
                 ],
               ),
             ],
@@ -201,42 +244,37 @@ class _ConfessionItemState extends State<ConfessionItem> {
             elevation: 4,
             margin: const EdgeInsets.only(top: 8.0),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0), // Optional: Adjust the radius to match your design
+              borderRadius: BorderRadius.circular(12.0),
             ),
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.pink, const Color.fromARGB(174, 244, 67, 54)], // Gradient from pink to red
-                  begin: Alignment.topLeft, // Gradient starts from the top left
-                  end: Alignment.bottomRight, // Gradient ends at the bottom right
+                  colors: [Colors.pink, const Color.fromARGB(174, 244, 67, 54)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(12.0), // Optional: Round the corners for the gradient
+                borderRadius: BorderRadius.circular(12.0),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Text(
                   widget.confession.description,
-                  style: const TextStyle(fontSize: 16, color: Colors.white), // Change text color to white for contrast
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ),
           ),
 
-
           // Actions Section (Like and Comment Buttons)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: Icon(
-                  Icons.thumb_up,
-                  color: isLiked ? Colors.redAccent : Colors.grey,
-                ),
-                onPressed: () {
-                  setState(() {
-                    isLiked = !isLiked;
-                  });
-                },
+              LikeButton(
+                confessionId: widget.confession.confessionId,
+                userId: widget.currentUserId,
+                jwtToken: widget.jwtToken,
+                initialLikeCount: likeCount,
+                initialLikeStatus: isLiked,
               ),
               IconButton(
                 icon: const Icon(
