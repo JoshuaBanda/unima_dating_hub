@@ -18,7 +18,7 @@ class NotificationService {
 
   // Initialize the plugin
   static Future<void> initialize() async {
-    print("Initializing notification service...");
+    //print("Initializing notification service...");
     tz_data.initializeTimeZones();
 
     // Request notification permission
@@ -47,15 +47,15 @@ class NotificationService {
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
-    print("Notification service initialized.");
+    //print("Notification service initialized.");
   }
 
   // Request notification permissions for Android 13+
   static Future<void> _requestNotificationPermission() async {
     if (await Permission.notification.request().isGranted) {
-      print('Notification permission granted');
+      //print('Notification permission granted');
     } else {
-      print('Notification permission denied');
+      //print('Notification permission denied');
     }
   }
 
@@ -63,7 +63,7 @@ class NotificationService {
   static Future<void> onSelectNotification(NotificationResponse notificationResponse) async {
     final String? payload = notificationResponse.payload;
     if (payload != null) {
-      print('Notification payload: $payload');
+      //print('Notification payload: $payload');
       // Navigate based on the payload, pass the navigator key instead of context
       _navigateBasedOnPayload(payload);
     }
@@ -110,17 +110,17 @@ class NotificationService {
     String inboxId,    
   ) async {
     try {
-      print("Preparing to show notification with title: $title");
+      //print("Preparing to show notification with title: $title");
       String? largeIconPath;
 
       if (profilePhotoUrl.isNotEmpty) {
-        print("Profile photo URL provided, downloading image...");
+        //print("Profile photo URL provided, downloading image...");
         final file = await _downloadAndSaveImage(profilePhotoUrl, userId);
         if (file != null) {
           largeIconPath = file.path;
-          print("Image downloaded and saved at: ${file.path}");
+          //print("Image downloaded and saved at: ${file.path}");
         } else {
-          print("Failed to download profile photo.");
+          //print("Failed to download profile photo.");
         }
       }
 
@@ -154,16 +154,16 @@ class NotificationService {
         platformChannelSpecifics,
         payload: payload, // Pass the payload directly
       );
-      print("Notification displayed successfully.");
+      //print("Notification displayed successfully.");
     } catch (e) {
-      print("Error displaying notification: $e");
+      //print("Error displaying notification: $e");
     }
   }
 
   // Helper method to download and save the image locally
   static Future<File?> _downloadAndSaveImage(String imageUrl, String userId) async {
     try {
-      print("Downloading image from URL: $imageUrl");
+      //print("Downloading image from URL: $imageUrl");
       final directory = await getTemporaryDirectory();
       final filePath = '${directory.path}/profile_photo_$userId.jpg';
 
@@ -179,7 +179,7 @@ class NotificationService {
         return file;
       }
     } catch (e) {
-      print("Error downloading image: $e");
+      //print("Error downloading image: $e");
     }
     return null;
   }
@@ -212,7 +212,7 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exact,
         payload: 'scheduled_message',
       );
-      print("Scheduled notification successfully.");
+      //print("Scheduled notification successfully.");
     } catch (e) {
       print("Error scheduling notification: $e");
     }

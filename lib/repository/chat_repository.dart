@@ -4,6 +4,9 @@ import '/localDataBase/local_database.dart'; // Import the LocalDatabase class
 import 'package:unima_dating_hub/notifications/notification_service.dart';
 import 'package:unima_dating_hub/notifications/post_notifications_service.dart';
 
+import 'dart:async';
+import 'dart:collection'; // For using Queue
+
 class ChatRepository {
   final String apiUrl;
   Map<String, Map<String, dynamic>> _lastMessageCache = {};
@@ -174,6 +177,7 @@ class ChatRepository {
           message['message'] ?? ''; // Safeguard in case 'message' is null
 
       // Save the message in the local database
+      print(" inboxid $inboxIdStr userid $userIdStr $messageText");
       await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText);
 
       // Now, update the last message cache for the given inbox
@@ -187,10 +191,10 @@ class ChatRepository {
       List<String> activeInboxIds, String currentUserId) async {
     try {
       String inboxId = message['inboxid'].toString();
-      print("Inbox ID: $inboxId");
+      //print("Inbox ID: $inboxId");
 
       if (activeInboxIds.contains(inboxId)) {
-        print("Message belongs to an active inbox.");
+        //print("Message belongs to an active inbox.");
 
         // Now, instead of skipping messages from the current user, allow them to be saved
         bool messageExists = await _checkMessageExists(inboxId, message);
@@ -211,18 +215,18 @@ class ChatRepository {
 
           // If sender is unknown, do not show notification
           if (sender == null) {
-            print("Sender is unknown, not showing notification.");
+            //print("Sender is unknown, not showing notification.");
             return;
           }
 
+          print("message id $message");
           // If the sender is the current user, do not show notification
           if ((message['userid']).toString() == currentUserId) {
             print("Sender is the current user, not showing notification.");
           } else {
             // Update the message status to 'received'
             //await updateMessageStatus(message[0]['messageId'], 'received');
-            await updateMessageStatus(
-                message['messageId'].toString(), 'received');
+            await updateMessageStatus(message['id'].toString(), 'received');
 
             // If the message is not from the current user, show the notification
             String senderName = '${sender['firstname']} ${sender['lastname']}';
@@ -290,7 +294,6 @@ class ChatRepository {
 
   // Listen to SSE (Server-Sent Events) and save new messages to the local database
 
-// The updated function definition
   void listenToSse(
     List<String> inboxIds,
     String userId,
@@ -303,7 +306,7 @@ class ChatRepository {
       // Append the inboxIds and userId as query parameters in the URL
       final uri = Uri.parse(
           '$apiUrl/message/event?inboxIds=$inboxIdsParam&userId=$userId');
-      print("Initiating SSE connection to: $uri");
+      //print("Initiating SSE connection to: $uri");
 
       final client = http.Client();
       final request = http.Request('GET', uri);
@@ -315,13 +318,16 @@ class ChatRepository {
 
       if (streamedResponse.statusCode == 200 ||
           streamedResponse.statusCode == 201) {
-        print("SSE connection established successfully.");
+        //print("SSE connection established successfully.");
         final eventStream = streamedResponse.stream;
+
+        // Create a queue to store incoming messages
+        Queue<Map<String, dynamic>> messageQueue = Queue();
 
         // Listen for incoming events
         await for (var chunk in eventStream) {
           String chunkString = utf8.decode(chunk);
-          print("Received chunk: $chunkString");
+          //print("Received chunk: $chunkString");
 
           List<String> events = chunkString.split('\n');
           for (var event in events) {
@@ -329,27 +335,25 @@ class ChatRepository {
               try {
                 if (event.startsWith('data:')) {
                   String dataString = event.substring(5).trim();
-                  final message = json.decode(dataString);
+                  final List<dynamic> messages = json.decode(dataString);
 
-                  print("Processing event: $message");
+            //      print("Processing event: $messages");
 
-                  if (message is List &&
-                      message.isNotEmpty &&
-                      message[0].containsKey('inboxid') &&
-                      message[0].containsKey('message')) {
-                    print("Triggering onNewMessage callback...");
-                    onNewMessage(message[0]); // Trigger the callback
-
-                    // Call handleSseMessage here, passing the message and other required parameters
-                    print("Calling handleSseMessage...");
-                    handleSseMessage(message[0], inboxIds,
-                        userId); // <-- This is where we call handleSseMessage
-
-                    print("handleSseMessage has been called.");
-                    print("onNewMessage callback triggered.");
-                  } else {
-                    print("Invalid message structure: $message");
+                  // Iterate over each message in the list and add them to the queue
+                  for (var msg in messages) {
+                    if (msg is Map<String, dynamic> &&
+                        msg.containsKey('inboxid') &&
+                        msg.containsKey('message')) {
+                      messageQueue.add(msg);
+              //        print("Message added to queue. Queue length: ${messageQueue.length}");
+                    } else {
+                //      print("Invalid message structure: $msg");
+                    }
                   }
+
+                  // Trigger the callback and process the queue if there are messages
+                  await processMessageQueue(
+                      messageQueue, inboxIds, userId, onNewMessage);
                 }
               } catch (e) {
                 print("Error decoding event: $e");
@@ -358,8 +362,7 @@ class ChatRepository {
           }
         }
       } else {
-        print(
-            "Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+        print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
       }
     } catch (e) {
       print("Error listening to SSE: $e");
@@ -371,25 +374,60 @@ class ChatRepository {
     }
   }
 
+  Future<void> processMessageQueue(
+      Queue<Map<String, dynamic>> messageQueue,
+      List<String> inboxIds,
+      String userId,
+      void Function(Map<String, dynamic>) onNewMessage) async {
+    // Check if there are messages in the queue
+    if (messageQueue.isNotEmpty) {
+      // Get the first message in the queue
+      Map<String, dynamic> message = messageQueue.first;
+      //print("Processing message: $message");
+
+      // Trigger the callback for this message
+      onNewMessage(message);
+
+      // Call handleSseMessage here, passing the message and other required parameters
+      //print("Calling handleSseMessage...");
+      handleSseMessage(message, inboxIds, userId);
+
+      // Remove the processed message from the queue
+      messageQueue.removeFirst();
+      //print("Message processed and removed from queue. Queue length: ${messageQueue.length}");
+
+      // Ensure the next message is processed
+      //print("Checking if more messages are in the queue...");
+      if (messageQueue.isNotEmpty) {
+        //print( "There are more messages in the queue. Processing next message...");
+        await processMessageQueue(messageQueue, inboxIds, userId, onNewMessage);
+      } else {
+        //print("No more messages in the queue.");
+      }
+    } else {
+      //print("Queue is empty, no message to process.");
+    }
+  }
+
 // Helper function to update message status
   Future<void> updateMessageStatus(String messageId, String newStatus) async {
     try {
-      print('$messageId $newStatus');
-      final updateUri = Uri.parse('$apiUrl/message/update');
+      //print('$messageId $newStatus');
+      //change this
+      final updateUri = Uri.parse('$apiUrl/message/update/');
       final response = await http.put(
         updateUri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'messageId': messageId,
+          'id': messageId,
           'status': newStatus,
         }),
       );
 
       if (response.statusCode == 200) {
-        print("Message status updated to $newStatus.");
+        //print("Message status updated to $newStatus.");
       } else {
-        print(
-            "Failed to update message status. Status code: ${response.statusCode}");
+        //print(  "Failed to update message status. Status code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error updating message status: $e");
@@ -407,14 +445,14 @@ class ChatRepository {
 
       // If sender is unknown, do not show notification
       if (sender == null) {
-        print("Sender is unknown, not showing notification.");
+        //print("Sender is unknown, not showing notification.");
         return;
       }
 
       // If the post is from the current user, do not show a notification
       //will change the userid to user_id letter
       if ((post['userid']).toString() == currentUserId) {
-        print("Sender is the current user, not showing notification.");
+        //print("Sender is the current user, not showing notification.");
       } else {
         // If the message is not from the current user, show the notification
         String senderName = '${sender['firstname']} ${sender['lastname']}';
@@ -429,7 +467,7 @@ class ChatRepository {
             (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
 
         // Show the notification with profile image and dynamic ID
-        print("Showing notification: $senderName - ${post['description']}");
+        //print("Showing notification: $senderName - ${post['description']}");
         /*await PostNotificationsService.showNotification(
           senderName, // Title
           post['description'] ?? 'No post desription content', // Body
@@ -452,10 +490,10 @@ class ChatRepository {
           post['created_at'], // Created At (use appropriate format)
         );
 
-        print("Notification sent: $senderName - ${post['descripyion']}");
+        //print("Notification sent: $senderName - ${post['descripyion']}");
       }
     } catch (e) {
-      print("Error handling SSE post: $e");
+      //print("Error handling SSE post: $e");
     }
   }
 
@@ -465,10 +503,10 @@ class ChatRepository {
     String userId,
     void Function(Map<String, dynamic>) onNewPost,
   ) async {
-    print("Initializing SSE connection...");
+    //print("Initializing SSE connection...");
     try {
       final uri = Uri.parse('$apiUrl/message/eventS');
-      print("Initiating SSE connection to: $uri");
+      //print("Initiating SSE connection to: $uri");
 
       final client = http.Client();
       final request = http.Request('GET', uri);
@@ -478,13 +516,13 @@ class ChatRepository {
 
       if (streamedResponse.statusCode == 200 ||
           streamedResponse.statusCode == 201) {
-        print("SSE connection established successfully.");
+        //print("SSE connection established successfully.");
         final eventStream = streamedResponse.stream;
 
         // Listen for incoming events
         await for (var chunk in eventStream) {
           String chunkString = utf8.decode(chunk);
-          print("Received post chunk: $chunkString");
+          //print("Received post chunk: $chunkString");
 
           List<String> events = chunkString.split('\n');
           for (var event in events) {
@@ -494,14 +532,14 @@ class ChatRepository {
                   String dataString = event.substring(5).trim();
                   final post = json.decode(dataString);
 
-                  print("Processing event: $post");
+                  //print("Processing event: $post");
 
                   // Ensure that post is a list and check its content
                   if (post is List && post.isNotEmpty) {
                     final firstPost = post[0];
 
                     // Debug print the firstPost object to ensure the expected structure
-                    print("First post object: $firstPost");
+                    //print("First post object: $firstPost");
 
                     // Check if the required keys are in the post object
                     if (firstPost.containsKey('post_id') &&
@@ -509,39 +547,37 @@ class ChatRepository {
                         firstPost.containsKey('photo_url') &&
                         firstPost.containsKey('user_id') &&
                         firstPost.containsKey('created_at')) {
-                      print(
-                          "Valid message structure. Triggering onNewPost callback...");
+                      //print("Valid message structure. Triggering onNewPost callback...");
                       onNewPost(firstPost); // Trigger the callback
 
                       // Call handleSsePosts to process further
-                      print("Calling handleSsePosts...");
+                      //print("Calling handleSsePosts...");
                       handleSsePosts(firstPost, userId);
 
-                      print("handleSsePosts called.");
-                      print("onNewPost callback triggered.");
+                      //print("handleSsePosts called.");
+                      //print("onNewPost callback triggered.");
                     } else {
                       print("Invalid post structure. Missing required keys.");
-                      print("Post structure: $firstPost");
+                      //print("Post structure: $firstPost");
                     }
                   } else {
                     print("Invalid message structure: $post");
                   }
                 }
               } catch (e) {
-                print("Error decoding event: $e");
+                //print("Error decoding event: $e");
               }
             }
           }
         }
       } else {
-        print(
-            "Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+        //print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
       }
     } catch (e) {
-      print("Error listening to SSE: $e");
+      //print("Error listening to SSE: $e");
 
       // Retry logic with a delay
-      print("Retrying SSE connection...");
+      //print("Retrying SSE connection...");
       await Future.delayed(Duration(seconds: 5));
       listenToPostSse(inboxIds, userId, onNewPost); // Retry the connection
     }

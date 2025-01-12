@@ -7,7 +7,6 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:unima_dating_hub/home/HomeScreen.dart'; // Make sure this screen exists
 import 'package:unima_dating_hub/home/home.dart'; // Make sure this screen exists
 
 class PostNotificationsService {
@@ -19,7 +18,7 @@ class PostNotificationsService {
 
   // Initialize the plugin
   static Future<void> initialize() async {
-    print("Initializing notification service...");
+    //print("Initializing notification service...");
     tz_data.initializeTimeZones();
 
     // Request notification permission
@@ -48,15 +47,15 @@ class PostNotificationsService {
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
-    print("Notification service initialized.");
+    //print("Notification service initialized.");
   }
 
   // Request notification permissions for Android 13+
   static Future<void> _requestNotificationPermission() async {
     if (await Permission.notification.request().isGranted) {
-      print('Notification permission granted');
+      //print('Notification permission granted');
     } else {
-      print('Notification permission denied');
+      //print('Notification permission denied');
     }
   }
 
@@ -64,7 +63,7 @@ class PostNotificationsService {
   static Future<void> onSelectNotification(NotificationResponse notificationResponse) async {
     final String? payload = notificationResponse.payload;
     if (payload != null) {
-      print('Notification payload: $payload');
+      //print('Notification payload: $payload');
       // Navigate based on the payload, pass the navigator key instead of context
       _navigateBasedOnPayload(payload);
     }
@@ -104,31 +103,31 @@ class PostNotificationsService {
     String createdAt,
   ) async {
     try {
-      print("Preparing to show notification with title: $title");
+      //print("Preparing to show notification with title: $title");
       String? largeIconPath;
       String? senderIconPath;
 
       // Download the post photo if available
       if (photoUrl.isNotEmpty) {
-        print("Photo URL provided, downloading image...");
+        //print("Photo URL provided, downloading image...");
         final file = await _downloadAndSaveImage(photoUrl, postId);
         if (file != null) {
           largeIconPath = file.path;
-          print("Image downloaded and saved at: ${file.path}");
+          //print("Image downloaded and saved at: ${file.path}");
         } else {
-          print("Failed to download post photo.");
+          //print("Failed to download post photo.");
         }
       }
 
       // Download the sender's profile picture
       if (senderProfilePicture.isNotEmpty) {
-        print("Sender profile picture URL provided, downloading image...");
+        //print("Sender profile picture URL provided, downloading image...");
         final senderFile = await _downloadAndSaveImage(senderProfilePicture, userId);
         if (senderFile != null) {
           senderIconPath = senderFile.path;
-          print("Sender profile picture downloaded and saved at: ${senderFile.path}");
+          //print("Sender profile picture downloaded and saved at: ${senderFile.path}");
         } else {
-          print("Failed to download sender's profile picture.");
+          //print("Failed to download sender's profile picture.");
         }
       }
 
@@ -179,7 +178,7 @@ class PostNotificationsService {
         platformChannelSpecifics,
         payload: payload, // Pass the payload directly
       );
-      print("Notification displayed successfully.");
+      //print("Notification displayed successfully.");
     } catch (e) {
       print("Error displaying notification: $e");
     }
