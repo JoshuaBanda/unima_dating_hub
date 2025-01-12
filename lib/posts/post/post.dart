@@ -1,6 +1,6 @@
 class Post {
   final int postId;
-  final String description;
+  String description;
   final String photoUrl;
   final int userId;
   final String username;

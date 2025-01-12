@@ -129,10 +129,171 @@ class _PostItemState extends State<PostItem> {
           postId: widget.post.postId,
           currentUserId: widget.currentUserId,
           secondUserId: widget.post.userId,
+          jwtToken: widget.jwtToken,
         ),
       ),
     );
   }
+
+  void _editPost() async {
+  // Show a dialog or a new screen to edit the post
+  String? updatedDescription = await _showEditDialog(widget.post.description);
+  
+  // If the user provided a new description and it's different
+  if (updatedDescription != null && updatedDescription.isNotEmpty) {
+    try {
+      // Call API to update the post
+      await apiService.editPost(
+        jwtToken: widget.jwtToken,
+        postId: widget.post.postId,
+        newDescription: updatedDescription,
+        newPhotoUrl: widget.post.photoUrl, // Assuming you don't want to change photo URL here
+      );
+      
+      // Update the UI with the new description
+      setState(() {
+        widget.post.description = updatedDescription;
+      });
+      
+      // Show success message
+      _showSuccessMessage('Post updated successfully');
+    } catch (e) {
+      // Handle error while updating post
+      _showErrorMessage('Failed to update post');
+    }
+  }
+}
+
+
+// Display a success message in a SnackBar
+
+void _deletePost() async {
+  try {
+    await apiService.deletePost(
+      jwtToken: widget.jwtToken,
+      postId: widget.post.postId,
+    );
+    // Show success message after successfully deleting the post
+    _showSuccessMessage('Post deleted successfully!');
+    // Optionally, you can navigate the user back to a previous screen or refresh the list
+   // Navigator.pop(context); // Close the post item or go back to previous screen
+  } catch (e) {
+    _showErrorMessage('Failed to delete post. Please try again.');
+  }
+}
+
+void _showSuccessMessage(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.green,
+    ),
+  );
+}
+
+// Dialog to edit the post's description
+Future<String?> _showEditDialog(String currentDescription) async {
+  TextEditingController controller = TextEditingController(text: currentDescription);
+  
+  return showDialog<String>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0), // Rounded corners for the dialog
+        ),
+        backgroundColor: Colors.white, // Background color of the dialog
+        title: Text(
+          'Edit Post',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
+        ),
+        content: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Enter new description',
+              hintStyle: TextStyle(color: Colors.grey),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(
+                  color: Colors.blueAccent,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.0),
+                borderSide: BorderSide(
+                  color: Colors.blueAccent,
+                  width: 2.0,
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          // Save button with decoration
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(controller.text);
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Text(
+                'Save',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          
+          // Cancel button with decoration
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog without saving
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
+
+
+
+
+
+  
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -167,14 +328,18 @@ class _PostItemState extends State<PostItem> {
                 ),
               ),
               Spacer(),
-              PopupMenuButton<String>(
+              PopupMenuButton<String>( 
                 onSelected: (value) {
                   if (value == 'report') {
                     _reportPost();
+                  } else if (value == 'edit') {
+                    _editPost();
+                  } else if (value == 'delete') {
+                    _deletePost();
                   }
                 },
                 itemBuilder: (BuildContext context) => [
-                  PopupMenuItem<String>(
+                  PopupMenuItem<String>( 
                     value: 'report',
                     child: Row(
                       children: [
@@ -184,6 +349,29 @@ class _PostItemState extends State<PostItem> {
                       ],
                     ),
                   ),
+                  // Only show these menu options if the current user is the post owner
+                  if (widget.post.userId == widget.currentUserId) ...[
+                    PopupMenuItem<String>( 
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, color: Colors.blue),
+                          SizedBox(width: 10),
+                          Text('Edit Post'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>( 
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red),
+                          SizedBox(width: 10),
+                          Text('Delete Post'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],

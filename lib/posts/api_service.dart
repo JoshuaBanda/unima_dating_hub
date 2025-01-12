@@ -241,7 +241,7 @@ class ApiService {
     required int commentId,
     required String newCommentText,
   }) async {
-    if (commentId == /*null*/0 || newCommentText.isEmpty) {
+    if (commentId == /*null*/ 0 || newCommentText.isEmpty) {
       throw Exception("Invalid parameters for update.");
     }
 
@@ -293,7 +293,7 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         dynamic data = response.body;
-       // print(" data $data");
+        // print(" data $data");
         // Successfully liked the post
         return true; // Return success flag
       } else if (response.statusCode == 409) {
@@ -425,7 +425,7 @@ class ApiService {
       if (response.statusCode == 200) {
         // Check if the response body is empty
         if (response.body.isEmpty) {
-         // print('No likes found for this post');
+          // print('No likes found for this post');
           return 0; // Return 0 likes if no data is found
         } else {
           // Parse the response body as a list of like objects
@@ -444,6 +444,63 @@ class ApiService {
     } catch (e) {
       //print('Error fetching likes: $e');
       throw Exception('Failed to fetch likes: $e');
+    }
+  }
+
+  Future<void> editPost({
+    required String jwtToken,
+    required int postId,
+    required String newDescription,
+    required String newPhotoUrl,
+  }) async {
+    try {
+      final response = await client.patch(
+        Uri.parse('$baseUrl/post/$postId/description'), // Correct PATCH method
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'description': newDescription,
+          'photoUrl': newPhotoUrl, // Assuming backend can accept this field
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Post updated successfully
+        return;
+      } else {
+        throw Exception(
+            'Failed to edit post. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to edit post: $e');
+    }
+  }
+
+  Future<void> deletePost({
+    required String jwtToken,
+    required int postId,
+  }) async {
+    try {
+      final response = await client.delete(
+        Uri.parse('$baseUrl/post/$postId'),
+        headers: {
+          'Authorization': 'Bearer $jwtToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Post deleted successfully
+        print("${response.body}");
+        return;
+      } else {
+        throw Exception(
+            'Failed to delete post. Status Code: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to delete post: $e');
     }
   }
 }

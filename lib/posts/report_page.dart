@@ -6,11 +6,13 @@ class ReportPage extends StatefulWidget {
   final int postId;
   final int currentUserId;
   final int secondUserId;
+  final String jwtToken; // Add this line to accept the JWT token
 
   ReportPage({
     required this.postId,
     required this.currentUserId,
     required this.secondUserId,
+    required this.jwtToken, // Add the jwtToken to the constructor
   });
 
   @override
@@ -40,11 +42,14 @@ class _ReportPageState extends State<ReportPage> {
     }
 
     try {
+      print("jwt tocken ${widget.jwtToken}");
       final response = await http.post(
         Uri.parse(
-            'https://your-backend-api.com/report'), // Replace with your actual API URL
+            'https://datehubbackend.onrender.com/report/create'), // Replace with your actual API URL
         headers: <String, String>{
           'Content-Type': 'application/json',
+          'Authorization':
+              'Bearer ${widget.jwtToken}', // Add JWT token here in the Authorization header
         },
         body: json.encode({
           'postid': widget.postId,
@@ -53,7 +58,11 @@ class _ReportPageState extends State<ReportPage> {
         }),
       );
 
-      if (response.statusCode == 200) {
+      // Print the status code and response body to the console
+      //print("Response Status Code: ${response.statusCode}");
+      //print("Response Body: ${response.body}");
+
+      if (response.statusCode == 200||response.statusCode==201) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Post has been reported successfully')),
         );
@@ -68,6 +77,7 @@ class _ReportPageState extends State<ReportPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred. Please try again.')),
       );
+      print("Error occurred: $e"); // Print error details if exception occurs
     } finally {
       setState(() {
         isSubmitting = false;
@@ -84,85 +94,88 @@ class _ReportPageState extends State<ReportPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Thank you for using our services. We care about your safety and want to offer you the best service possible.',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-            SizedBox(height: 10),
-            // Dropdown for selecting the reason for reporting
-            DropdownButtonFormField<String>(
-              items: [
-                'Nudity or Sexual Content',
-                'Hate Speech or Bullying',
-                'Violence or Harmful Behavior',
-                'Spam or Scams',
-                'Other',
-              ].map((String reason) {
-                return DropdownMenuItem<String>(
-                  value: reason,
-                  child: Text(reason),
-                );
-              }).toList(),
-              onChanged: (value) {
-                // Handle selection
-              },
-              decoration: InputDecoration(
-                labelText: 'Select Reason for Report',
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.red),
-                ),
+        child: SingleChildScrollView(
+          // Wrap the Column inside a SingleChildScrollView
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Thank you for using our services. We care about your safety and want to offer you the best service possible.',
+                style: TextStyle(fontSize: 16, color: Colors.black87),
               ),
-            ),
-            SizedBox(height: 10),
-            // Input field for additional description of the report
-            TextField(
-              controller: _reportController,
-              maxLines: 5,
-              decoration: InputDecoration(
-                hintText: 'Enter your reason here...',
-                hintStyle: TextStyle(color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.red),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.red),
-                ),
-                contentPadding: EdgeInsets.all(10),
-              ),
-            ),
-            SizedBox(height: 20),
-            // Submit button
-            isSubmitting
-                ? Center(
-                    child:
-                        CircularProgressIndicator()) // Show loading indicator while submitting
-                : ElevatedButton(
-                    onPressed: _sendReport, // Submit the report
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.red, // Red background color for the button
-                      iconColor: Colors.white, // White text color
-                    ),
-                    child: Text(
-                      'Report Post',
-                      style: TextStyle(color: Colors.white),
-                    ),
+              SizedBox(height: 10),
+              // Dropdown for selecting the reason for reporting
+              DropdownButtonFormField<String>(
+                items: [
+                  'Nudity or Sexual Content',
+                  'Hate Speech or Bullying',
+                  'Violence or Harmful Behavior',
+                  'Spam or Scams',
+                  'Other',
+                ].map((String reason) {
+                  return DropdownMenuItem<String>(
+                    value: reason,
+                    child: Text(reason),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  // Handle selection
+                },
+                decoration: InputDecoration(
+                  labelText: 'Select Reason for Report',
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.red),
                   ),
-            SizedBox(height: 8),
-            // Cancel button
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style:
-                    TextStyle(color: Colors.red), // Red color for cancel text
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: 10),
+              // Input field for additional description of the report
+              TextField(
+                controller: _reportController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  hintText: 'Enter your reason here...',
+                  hintStyle: TextStyle(color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.red),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.red),
+                  ),
+                  contentPadding: EdgeInsets.all(10),
+                ),
+              ),
+              SizedBox(height: 20),
+              // Submit button
+              isSubmitting
+                  ? Center(
+                      child:
+                          CircularProgressIndicator()) // Show loading indicator while submitting
+                  : ElevatedButton(
+                      onPressed: _sendReport, // Submit the report
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Colors.red, // Red background color for the button
+                        iconColor: Colors.white, // White text color
+                      ),
+                      child: Text(
+                        'Report Post',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+              SizedBox(height: 8),
+              // Cancel button
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style:
+                      TextStyle(color: Colors.red), // Red color for cancel text
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

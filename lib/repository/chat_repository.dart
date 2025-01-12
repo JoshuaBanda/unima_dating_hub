@@ -197,7 +197,7 @@ class ChatRepository {
         print("Message exists in local storage: $messageExists");
 
         if (!messageExists) {
-          print("Message does not exist. Saving it.");
+          print("Message does not exist. Saving it. $message");
           await saveReceivedMessage(inboxId, message);
           _updateLastMessageCache(inboxId, message);
 
@@ -219,6 +219,11 @@ class ChatRepository {
           if ((message['userid']).toString() == currentUserId) {
             print("Sender is the current user, not showing notification.");
           } else {
+            // Update the message status to 'received'
+            //await updateMessageStatus(message[0]['messageId'], 'received');
+            await updateMessageStatus(
+                message['messageId'].toString(), 'received');
+
             // If the message is not from the current user, show the notification
             String senderName = '${sender['firstname']} ${sender['lastname']}';
             String senderProfilePhoto = sender != null &&
@@ -292,7 +297,12 @@ class ChatRepository {
     void Function(Map<String, dynamic>) onNewMessage,
   ) async {
     try {
-      final uri = Uri.parse('$apiUrl/message/event');
+      // Convert inboxIds list to a comma-separated string
+      final inboxIdsParam = inboxIds.join(',');
+
+      // Append the inboxIds and userId as query parameters in the URL
+      final uri = Uri.parse(
+          '$apiUrl/message/event?inboxIds=$inboxIdsParam&userId=$userId');
       print("Initiating SSE connection to: $uri");
 
       final client = http.Client();
@@ -311,7 +321,7 @@ class ChatRepository {
         // Listen for incoming events
         await for (var chunk in eventStream) {
           String chunkString = utf8.decode(chunk);
-          print("Received k chunk: $chunkString");
+          print("Received chunk: $chunkString");
 
           List<String> events = chunkString.split('\n');
           for (var event in events) {
@@ -358,6 +368,31 @@ class ChatRepository {
       print("Retrying SSE connection...");
       await Future.delayed(Duration(seconds: 5));
       listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
+    }
+  }
+
+// Helper function to update message status
+  Future<void> updateMessageStatus(String messageId, String newStatus) async {
+    try {
+      print('$messageId $newStatus');
+      final updateUri = Uri.parse('$apiUrl/message/update');
+      final response = await http.put(
+        updateUri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'messageId': messageId,
+          'status': newStatus,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("Message status updated to $newStatus.");
+      } else {
+        print(
+            "Failed to update message status. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error updating message status: $e");
     }
   }
 
@@ -416,7 +451,6 @@ class ChatRepository {
           senderProfilePhoto,
           post['created_at'], // Created At (use appropriate format)
         );
-
 
         print("Notification sent: $senderName - ${post['descripyion']}");
       }

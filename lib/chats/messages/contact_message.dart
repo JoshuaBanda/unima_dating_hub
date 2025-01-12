@@ -127,7 +127,7 @@
           'createdat': DateTime.now().toString(),
           'userid': widget.myUserId,
           'messageId': messageId, // Add unique ID
-          'status':'pending'
+          'status':'sent'
         };
         currentMessages.add(message); // Add the new message at the bottom
         sendingStatus[messageId] = false; // Initially mark the message as not sent
