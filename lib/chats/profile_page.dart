@@ -28,6 +28,78 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool creatingInbox = false;
+  bool _showCharacteristics = false;
+  bool _isLoading = true;
+
+  // Individual variables for each characteristic (excluding id and user_id)
+  String? dob;
+  String? sex;
+  int? height;
+  String? skinColor;
+  String? hobby;
+  String? location;
+  String? programOfStudy;
+  int? yearOfStudy;
+
+  @override
+  void initState() {
+    super.initState();
+    print("Fetching user characteristics...");
+    _fetchUserCharacteristics();
+  }
+
+  Future<void> _fetchUserCharacteristics() async {
+    final userId = widget.secondUserId;
+    final token = widget.jwtToken;
+
+    try {
+      print("Sending request to fetch characteristics for userId: $userId");
+
+      final response = await http.get(
+        Uri.parse('https://datehubbackend.onrender.com/user-characteristics/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print("Received response with status code: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        setState(() {
+          final Map<String, dynamic> characteristics = json.decode(response.body);
+
+          // Decode individual characteristics into variables
+          dob = characteristics['dob'];
+          sex = characteristics['sex'];
+          height = characteristics['height'];
+          skinColor = characteristics['skin_color'];
+          hobby = characteristics['hobby'];
+          location = characteristics['location'];
+          programOfStudy = characteristics['program_of_study'];
+          yearOfStudy = characteristics['year_of_study'];
+
+          _isLoading = false;
+        });
+        print("Fetched characteristics: $dob, $sex, $height, $skinColor, $hobby, $location, $programOfStudy, $yearOfStudy");
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        print("Failed to load characteristics, status code: ${response.statusCode}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load characteristics')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("Error fetching characteristics: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
 
   Future<void> sendFriendRequest() async {
     setState(() {
@@ -39,6 +111,8 @@ class _ProfilePageState extends State<ProfilePage> {
       'seconduserid': int.parse(widget.secondUserId),
     };
 
+    print("Sending friend request: $requestData");
+
     try {
       final response = await http.post(
         Uri.parse(
@@ -46,13 +120,16 @@ class _ProfilePageState extends State<ProfilePage> {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestData),
       );
-      
+
+      print("Friend request response status: ${response.statusCode}");
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
           creatingInbox = false;
         });
         final inbox = json.decode(response.body);
         if (inbox.isNotEmpty) {
+          print("Friend request successful. Navigating to chat.");
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -70,13 +147,15 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           creatingInbox = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar( SnackBar(
+        print("Already friends or request failed.");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('You are already friends with ${widget.firstName}')));
       }
     } catch (e) {
       setState(() {
         creatingInbox = false;
       });
+      print("Error sending friend request: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
@@ -92,6 +171,8 @@ class _ProfilePageState extends State<ProfilePage> {
       'seconduserid': int.parse(widget.secondUserId),
     };
 
+    print("Sending message screen request: $requestData");
+
     try {
       final response = await http.post(
         Uri.parse(
@@ -100,12 +181,15 @@ class _ProfilePageState extends State<ProfilePage> {
         body: json.encode(requestData),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201||response.statusCode==500) {
+      print("Message screen request response status: ${response.statusCode}");
+
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 500) {
         setState(() {
           creatingInbox = false;
         });
         final inbox = json.decode(response.body);
         if (inbox.isNotEmpty) {
+          print("Message screen opened. Navigating to chat.");
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -123,6 +207,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           creatingInbox = false;
         });
+        print("Failed to start conversation.");
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to start conversation')));
       }
@@ -130,6 +215,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         creatingInbox = false;
       });
+      print("Error opening message screen: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
@@ -188,6 +274,38 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const Divider(),
+
+          // Add a section for showing characteristics
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    title: Text("User Characteristics",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    trailing: Icon(
+                      _showCharacteristics
+                          ? Icons.expand_less
+                          : Icons.expand_more,
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _showCharacteristics = !_showCharacteristics;
+                      });
+                    },
+                  ),
+                  if (_showCharacteristics) _buildUserCharacteristics(),
+                ],
+              ),
+            ),
+          ),
+
           Expanded(
             child: ProfilePostListPage(
               currentUserId: currentUserId,
@@ -197,6 +315,30 @@ class _ProfilePageState extends State<ProfilePage> {
               jwtToken: widget.jwtToken,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Widget for user characteristics
+  Widget _buildUserCharacteristics() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (dob != null) Text("Date of Birth: $dob"),
+          if (sex != null) Text("Sex: $sex"),
+          if (height != null) Text("Height: $height cm"),
+          if (skinColor != null) Text("Skin Color: $skinColor"),
+          if (hobby != null) Text("Hobby: $hobby"),
+          if (location != null) Text("Location: $location"),
+          if (programOfStudy != null) Text("Program of Study: $programOfStudy"),
+          if (yearOfStudy != null) Text("Year of Study: $yearOfStudy"),
         ],
       ),
     );

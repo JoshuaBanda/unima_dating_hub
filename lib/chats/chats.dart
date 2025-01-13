@@ -28,95 +28,121 @@ class _ChatsState extends State<Chats> {
   @override
   void initState() {
     super.initState();
-    //print('Initializing Chats...');
-    chatRepository = ChatRepository(apiUrl: 'https://datehubbackend.onrender.com');
+    chatRepository =
+        ChatRepository(apiUrl: 'https://datehubbackend.onrender.com');
     chatService = ChatService(chatRepository: chatRepository);
     fetchUsers();
   }
 
-  // Callback for SSE messages
-// Callback for SSE messages
-// Callback for SSE messages
-void _onNewMessageReceived(Map<String, dynamic> message) {
-  setState(() {
-    final inboxId = message['inboxid']?.toString();
-    if (inboxId != null) {
-      // Create a new users list with updated data
-      users = users.map((user) {
-        if (user['inboxData']?['inboxid']?.toString() == inboxId) {
-          // Update the last message and timestamp for the correct user
-          user['lastMessage'] = message['message'];
-          user['lastMessageTime'] = message['createdAt'];
-        }
-        return user;
-      }).toList(); // Ensure this creates a new list
-
-      // Sort the users based on the last message time (descending)
-      users.sort((a, b) {
-        final timeA = DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
-        final timeB = DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
-        return timeB.compareTo(timeA); // Sorting in descending order
-      });
-    }
-  });
-}
-
-  // Fetch users and their last message timestamps
-void fetchUsers() async {
-  try {
-    final usersData = await chatService.getUsers(widget.myUserId);
-
-    // Create a ValueNotifier for each user
-    for (var user in usersData) {
-      final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
-      final lastMessage = await chatService.getLastMessage(inboxId);
-      final createdAt = lastMessage['createdAt'] ?? '';
-      
-      user['lastMessageNotifier'] = ValueNotifier<Map<String, dynamic>>({
-        'message': lastMessage['message'],
-        'createdAt': createdAt,
-      });
-    }
-
+  // Callback when a new message is received via SSE
+  void _onNewMessageReceived(Map<String, dynamic> message) {
     setState(() {
-      users = usersData;
-      loading = false;
-      error = '';
-    });
+      final inboxId = message['inboxid']?.toString();
+      if (inboxId != null) {
+        users = users.map((user) {
+          if (user['inboxData']?['inboxid']?.toString() == inboxId) {
+            user['lastMessage'] = message['message'];
+            user['lastMessageTime'] = message['createdat'];
+          }
+          return user;
+        }).toList();
 
-    // Start the SSE listener
-    List<String> activeInboxIds = usersData
-        .map((user) => user['inboxData']?['inboxid']?.toString() ?? '')
-        .where((inboxId) => inboxId.isNotEmpty)
-        .toList();
+        // Sort users by last message time (newest first)
+        users.sort((a, b) {
+          final timeA =
+              DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
+          final timeB =
+              DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
 
-    chatRepository.listenToSse(
-      activeInboxIds,
-      widget.myUserId,
-      (Map<String, dynamic> message) {
-        _onNewMessageReceived(message); // Update notifier
-      },
-    );
+          // Debug print to show the parsed times
+          //print("Comparing timeA: $timeA with timeB: $timeB");
 
-    chatRepository.listenToPostSse(
-      activeInboxIds,
-      widget.myUserId,
-      (Map<String, dynamic> message) {
-        _onNewMessageReceived(message); // Update notifier
-      },
-    );
-  } catch (e) {
-    setState(() {
-      error = 'Failed to load users';
-      loading = false;
+          return timeB.compareTo(timeA); // Sorting in descending order
+        });
+
+        // Debugging print for users list after sorting
+        //print("Users list after sorting: ${users.map((user) => user['lastMessageTime']).toList()}");
+      }
     });
   }
-}
 
+  // Fetch users and their last message timestamps
+  void fetchUsers() async {
+    try {
+      final usersData = await chatService.getUsers(widget.myUserId);
+      //print("Fetched users: $usersData"); // Debugging print
 
-  // Navigate to the chat inbox for a user
-  Future<void> navigateToInbox(int userId, String firstName, String lastName, String profilePicture, String inboxId) async {
-    //print('Navigating to inbox for user: $firstName $lastName');
+      // Fetch the last message for each user and set the timestamp
+      for (var user in usersData) {
+        final inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
+        final lastMessage = await chatService.getLastMessage(inboxId);
+        final createdAt = lastMessage['createdat'] ?? '';
+        user['lastMessage'] = lastMessage['message'];
+        user['lastMessageTime'] = createdAt;
+
+        // Debugging print for each user
+        //print("User ${user['firstname']} ${user['lastname']}: lastMessage=${user['lastMessage']} at $createdAt");
+      }
+
+      setState(() {
+        users = usersData;
+        // Sort users based on the last message time (newest first)
+        users.sort((a, b) {
+          final timeA =
+              DateTime.tryParse(a['lastMessageTime'] ?? '') ?? DateTime(1970);
+          final timeB =
+              DateTime.tryParse(b['lastMessageTime'] ?? '') ?? DateTime(1970);
+
+          // Debug print to show the parsed times
+          //print("Comparing timeA: $timeA with timeB: $timeB");
+
+          return timeB.compareTo(timeA); // Sorting in descending order
+        });
+
+        // Debugging print for users list after sorting
+        //print("Users list after sorting: ${users.map((user) => user['lastMessageTime']).toList()}");
+
+        loading = false;
+        error = '';
+      });
+
+      List<String> activeInboxIds = usersData
+          .map((user) => user['inboxData']?['inboxid']?.toString() ?? '')
+          .where((inboxId) => inboxId.isNotEmpty)
+          .toList();
+
+      // Start SSE listener
+      chatRepository.listenToSse(
+        activeInboxIds,
+        widget.myUserId,
+        (Map<String, dynamic> message) {
+          _onNewMessageReceived(message);
+        },
+      );
+
+      chatRepository.listenToStatusSse(
+        activeInboxIds,
+        widget.myUserId,
+      );
+
+      chatRepository.listenToPostSse(
+        activeInboxIds,
+        widget.myUserId,
+        (Map<String, dynamic> message) {
+          _onNewMessageReceived(message);
+        },
+      );
+    } catch (e) {
+      setState(() {
+        error = 'Failed to load users';
+        loading = false;
+      });
+    }
+  }
+
+  // Navigate to chat inbox for a user
+  Future<void> navigateToInbox(int userId, String firstName, String lastName,
+      String profilePicture, String inboxId) async {
     setState(() {
       creatingInbox = true;
     });
@@ -136,27 +162,36 @@ void fetchUsers() async {
     );
   }
 
-  // Method to get the last message for a user
+  // Get the last message for a user
   Future<Map<String, dynamic>> getLastMessageForUser(String inboxId) async {
     try {
-      //print('Fetching last message for inboxId: $inboxId');
       final lastMessage = await chatService.getLastMessage(inboxId);
       final message = lastMessage['message'] ?? '';
       final createdAt = lastMessage['createdat'] ?? '';
-     // print('Last message for inboxId $inboxId: $message at $createdAt');
+      final lastMessageStatusv = lastMessage['status'];
+      final messageId = lastMessage['id']; // This is your message ID
+      final sender = lastMessage['userid'];
+
+      //print("Message ID: $messageId");
+
       return {
         'message': message,
         'createdAt': createdAt,
+        'lastMessageStatus': lastMessageStatusv,
+        'messageId': messageId, // Make sure to include the message ID here
+        'sender': sender,
       };
     } catch (e) {
-      //print('Error fetching last message for inboxId $inboxId: $e');
-      return {'message': 'Unable to fetch message', 'createdAt': ''};
+      return {
+        'message': 'Unable to fetch message',
+        'createdAt': '',
+        'messageId': ''
+      };
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    //print('Building Chats screen...');
     return Scaffold(
       body: loading
           ? const Center(
@@ -176,28 +211,55 @@ void fetchUsers() async {
                         String profilePicture = user['profilepicture'] ?? '';
                         String firstName = user['firstname'] ?? 'Unknown';
                         String lastName = user['lastname'] ?? 'User';
-                        String inboxId = user['inboxData']?['inboxid']?.toString() ?? '';
+                        String inboxId =
+                            user['inboxData']?['inboxid']?.toString() ?? '';
 
-                        //print('Rendering user: $firstName $lastName');
                         return UserListItem(
                           firstName: firstName,
                           lastName: lastName,
                           profilePicture: profilePicture,
                           inboxId: inboxId,
                           lastMessageFuture: getLastMessageForUser(inboxId),
-                          onTap: () => navigateToInbox(  // Correctly call navigateToInbox here
-                            user['userid'],
-                            firstName,
-                            lastName,
-                            profilePicture,
-                            inboxId,
-                          ),
+                          onTap: () async {
+                            // Fetch message ID and status before navigating
+                            final lastMessage =
+                                await getLastMessageForUser(inboxId);
+                            final messageId = lastMessage['messageId'];
+                            final newStatus =
+                                'seen'; // Update this based on your logic
+                            final sender = lastMessage['sender'];
+                            final oldStatus = lastMessage['lastMessageStatus'];
+
+                            // Navigate to inbox
+                            navigateToInbox(
+                              user['userid'],
+                              firstName,
+                              lastName,
+                              profilePicture,
+                              inboxId,
+                            );
+
+                            // Update message status to seen
+                            if (messageId != null &&
+                                sender.toString() != widget.myUserId &&
+                                oldStatus == 'received') {
+                              //print("match kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
+                              chatRepository.updateMessageStatusToSeen(
+                                messageId.toString(),
+                                newStatus,
+                              );
+                              print(
+                                  "updating message to seen $messageId, ${widget.myUserId}");
+                            } else {
+                              print("not updating message to seen");
+                            }
+                          },
+                          myUserId: widget.myUserId,
                         );
                       },
                     ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          //print('Navigating to Contacts screen...');
           Navigator.push(
             context,
             MaterialPageRoute(

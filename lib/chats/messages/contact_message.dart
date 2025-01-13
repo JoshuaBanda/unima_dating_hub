@@ -135,7 +135,7 @@
 
       try {
         print('Sending message: $messageText');
-        await chatRepository.sendMessage(inboxId, widget.myUserId, messageText);
+        await chatRepository.sendMessage(inboxId, widget.myUserId, messageText,'sent');
         print('Message sent successfully');
 
         socket.emit('triggerRefresh', {

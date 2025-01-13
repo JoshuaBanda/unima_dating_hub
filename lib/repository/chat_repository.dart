@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '/localDataBase/local_database.dart'; // Import the LocalDatabase class
+import '/localDataBase/local_database.dart';
 import 'package:unima_dating_hub/notifications/notification_service.dart';
 import 'package:unima_dating_hub/notifications/post_notifications_service.dart';
 
@@ -11,8 +11,16 @@ class ChatRepository {
   final String apiUrl;
   Map<String, Map<String, dynamic>> _lastMessageCache = {};
 
+  final int maxRetryAttempts = 5;
+  int retryDelaySeconds = 5;
+  http.Client? _client; // Nullable client field
+
   // Constructor
-  ChatRepository({required this.apiUrl});
+  ChatRepository({required this.apiUrl}); // Lazy initialization of the client
+  http.Client get client {
+    _client ??= http.Client(); // Initialize only if not already initialized
+    return _client!;
+  }
 
   // Fetch inbox data for a user
   Future<Map<String, dynamic>> fetchInboxData(
@@ -93,12 +101,13 @@ class ChatRepository {
 
   // Send a new message
   Future<void> sendMessage(
-      String inboxId, String userId, String messageText) async {
+      String inboxId, String userId, String messageText, String status) async {
     try {
       final requestData = {
         'inboxid': inboxId,
         'userid': userId,
         'message': messageText,
+        'status': status,
       };
 
       final response = await http
@@ -172,13 +181,21 @@ class ChatRepository {
       // Ensure inboxId and userId are converted to strings if they're integers
       String inboxIdStr = inboxId.toString();
       String userIdStr =
-          message['userid'].toString(); // Convert userid to string
+          message['userid'].toString(); // Convert userId to string
       String messageText =
           message['message'] ?? ''; // Safeguard in case 'message' is null
+      String messageId = message['id'].toString(); // Remote message ID
+      String status = 'received'; // Default status for received messages
+      String createdAt = message['createdat'] ??
+          DateTime.now()
+              .toIso8601String(); // Use 'createdat' from message or current time
 
       // Save the message in the local database
-      print(" inboxid $inboxIdStr userid $userIdStr $messageText");
-      await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText);
+      print(
+          "Inserting message: inboxid=$inboxIdStr, userid=$userIdStr, message=$messageText, messageId=$messageId, status=$status, createdAt=$createdAt");
+      await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText,
+          messageId, createdAt, // Pass createdAt as a parameter
+          status: status);
 
       // Now, update the last message cache for the given inbox
       _updateLastMessageCache(inboxIdStr, message);
@@ -226,7 +243,8 @@ class ChatRepository {
           } else {
             // Update the message status to 'received'
             //await updateMessageStatus(message[0]['messageId'], 'received');
-            await updateMessageStatus(message['id'].toString(), 'received');
+            await updateMessageStatusToSent(
+                message['id'].toString(), 'received');
 
             // If the message is not from the current user, show the notification
             String senderName = '${sender['firstname']} ${sender['lastname']}';
@@ -294,85 +312,89 @@ class ChatRepository {
 
   // Listen to SSE (Server-Sent Events) and save new messages to the local database
 
-  void listenToSse(
-    List<String> inboxIds,
-    String userId,
-    void Function(Map<String, dynamic>) onNewMessage,
-  ) async {
+// SSE connection listener
+  Future<void> listenToSse(
+  List<String> inboxIds,
+  String userId,
+  void Function(Map<String, dynamic>) onNewMessage,
+) async {
+  int retryAttempts = 0;
+  final inboxIdsParam = inboxIds.join(',');
+  final uri = Uri.parse(
+    '$apiUrl/message/event?inboxIds=$inboxIdsParam&userId=$userId',
+  );
+
+  String buffer = ''; // To buffer incomplete messages
+  Queue<Map<String, dynamic>> messageQueue = Queue();
+
+  while (retryAttempts < maxRetryAttempts) {
     try {
-      // Convert inboxIds list to a comma-separated string
-      final inboxIdsParam = inboxIds.join(',');
-
-      // Append the inboxIds and userId as query parameters in the URL
-      final uri = Uri.parse(
-          '$apiUrl/message/event?inboxIds=$inboxIdsParam&userId=$userId');
-      //print("Initiating SSE connection to: $uri");
-
-      final client = http.Client();
       final request = http.Request('GET', uri);
-      request.headers.addAll({
-        'Accept': 'text/event-stream',
-      });
+      request.headers.addAll({'Accept': 'text/event-stream'});
 
       final streamedResponse = await client.send(request);
 
       if (streamedResponse.statusCode == 200 ||
           streamedResponse.statusCode == 201) {
-        //print("SSE connection established successfully.");
         final eventStream = streamedResponse.stream;
-
-        // Create a queue to store incoming messages
-        Queue<Map<String, dynamic>> messageQueue = Queue();
 
         // Listen for incoming events
         await for (var chunk in eventStream) {
           String chunkString = utf8.decode(chunk);
-          //print("Received chunk: $chunkString");
+          buffer += chunkString; // Append chunk to buffer
 
-          List<String> events = chunkString.split('\n');
-          for (var event in events) {
-            if (event.isNotEmpty) {
-              try {
-                if (event.startsWith('data:')) {
-                  String dataString = event.substring(5).trim();
-                  final List<dynamic> messages = json.decode(dataString);
+          // Try processing the buffer if we have a complete message
+          while (buffer.contains('data:')) {
+            int dataStart = buffer.indexOf('data:') + 5; // Skip 'data:' part
+            int dataEnd = buffer.indexOf('\n', dataStart); // Find end of data
 
-            //      print("Processing event: $messages");
+            if (dataEnd == -1) {
+              break; // Wait for more data if we don't have a full message
+            }
 
-                  // Iterate over each message in the list and add them to the queue
-                  for (var msg in messages) {
-                    if (msg is Map<String, dynamic> &&
-                        msg.containsKey('inboxid') &&
-                        msg.containsKey('message')) {
-                      messageQueue.add(msg);
-              //        print("Message added to queue. Queue length: ${messageQueue.length}");
-                    } else {
-                //      print("Invalid message structure: $msg");
-                    }
-                  }
+            // Extract complete JSON data
+            String dataJson = buffer.substring(dataStart, dataEnd).trim();
+            buffer = buffer.substring(dataEnd + 1); // Update buffer with remaining data
 
-                  // Trigger the callback and process the queue if there are messages
-                  await processMessageQueue(
-                      messageQueue, inboxIds, userId, onNewMessage);
+            // Try to decode the data JSON part
+            try {
+              final List<dynamic> messages = json.decode(dataJson);
+              for (var msg in messages) {
+                if (msg is Map<String, dynamic> &&
+                    msg.containsKey('inboxid') &&
+                    msg.containsKey('message')) {
+                  messageQueue.add(msg); // Add to message queue
                 }
-              } catch (e) {
-                print("Error decoding event: $e");
               }
+
+              // Now process the queue
+              await processMessageQueue(
+                  messageQueue, inboxIds, userId, onNewMessage);
+            } catch (e) {
+              print("Error decoding JSON message: $e");
+              print("Problematic message data: $dataJson");
             }
           }
         }
       } else {
-        print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+        print('Failed to establish SSE connection. Retrying...');
       }
     } catch (e) {
-      print("Error listening to SSE: $e");
+      print('Error while connecting to SSE: $e');
+    }
 
-      // Retry logic with a delay
-      print("Retrying SSE connection...");
-      await Future.delayed(Duration(seconds: 5));
-      listenToSse(inboxIds, userId, onNewMessage); // Retry the connection
+    // Retry logic with exponential backoff
+    retryAttempts++;
+    if (retryAttempts < maxRetryAttempts) {
+      print('Retrying SSE connection in $retryDelaySeconds seconds...');
+      await Future.delayed(Duration(seconds: retryDelaySeconds));
+      retryDelaySeconds *= 2; // Exponential backoff
+    } else {
+      print('Max retry attempts reached.');
+      break;
     }
   }
+}
 
   Future<void> processMessageQueue(
       Queue<Map<String, dynamic>> messageQueue,
@@ -410,11 +432,12 @@ class ChatRepository {
   }
 
 // Helper function to update message status
-  Future<void> updateMessageStatus(String messageId, String newStatus) async {
+  Future<void> updateMessageStatusToSent(
+      String messageId, String newStatus) async {
     try {
-      //print('$messageId $newStatus');
+      print('$messageId $newStatus');
       //change this
-      final updateUri = Uri.parse('$apiUrl/message/update/');
+      final updateUri = Uri.parse('$apiUrl/message/update');
       final response = await http.put(
         updateUri,
         headers: {'Content-Type': 'application/json'},
@@ -423,9 +446,34 @@ class ChatRepository {
           'status': newStatus,
         }),
       );
-
+      print("status code ${response.statusCode}");
       if (response.statusCode == 200) {
-        //print("Message status updated to $newStatus.");
+        print("Message status updated to $newStatus. ");
+      } else {
+        //print(  "Failed to update message status. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error updating message status: $e");
+    }
+  }
+
+  Future<void> updateMessageStatusToSeen(
+      String messageId, String newStatus) async {
+    try {
+      print('$messageId $newStatus');
+      //change this
+      final updateUri = Uri.parse('$apiUrl/message/update');
+      final response = await http.put(
+        updateUri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id': messageId,
+          'status': newStatus,
+        }),
+      );
+      print("status code ${response.statusCode}");
+      if (response.statusCode == 200) {
+        print("Message status updated to $newStatus. ");
       } else {
         //print(  "Failed to update message status. Status code: ${response.statusCode}");
       }
@@ -497,17 +545,144 @@ class ChatRepository {
     }
   }
 
-// The updated function definition
-  void listenToPostSse(
-    List<String> inboxIds,
-    String userId,
-    void Function(Map<String, dynamic>) onNewPost,
-  ) async {
-    //print("Initializing SSE connection...");
-    try {
-      final uri = Uri.parse('$apiUrl/message/eventS');
-      //print("Initiating SSE connection to: $uri");
+void listenToPostSse(
+  List<String> inboxIds,
+  String userId,
+  void Function(Map<String, dynamic>) onNewPost,
+) async {
+  int retryAttempts = 0;
+  final uri = Uri.parse('$apiUrl/message/eventS');
 
+  String buffer = ''; // Buffer for incomplete messages
+  Queue<Map<String, dynamic>> postQueue = Queue();
+
+  while (retryAttempts < maxRetryAttempts) {
+    try {
+      final request = http.Request('GET', uri);
+      request.headers.addAll({'Accept': 'text/event-stream'});
+
+      final streamedResponse = await client.send(request);
+
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
+        final eventStream = streamedResponse.stream;
+
+        // Listen for incoming events
+        await for (var chunk in eventStream) {
+          String chunkString = utf8.decode(chunk);
+          buffer += chunkString; // Append chunk to buffer
+
+          // Try processing the buffer if we have a complete message
+          while (buffer.contains('data:')) {
+            int dataStart = buffer.indexOf('data:') + 5; // Skip 'data:' part
+            int dataEnd = buffer.indexOf('\n', dataStart); // Find end of data
+
+            if (dataEnd == -1) {
+              break; // Wait for more data if we don't have a full message
+            }
+
+            // Extract complete JSON data
+            String dataJson = buffer.substring(dataStart, dataEnd).trim();
+            buffer = buffer.substring(dataEnd + 1); // Update buffer with remaining data
+
+            // Try to decode the data JSON part
+            try {
+              final List<dynamic> posts = json.decode(dataJson);
+              if (posts.isNotEmpty && posts is List) {
+                final firstPost = posts[0];
+
+                // Validate the structure of the post
+                if (firstPost.containsKey('post_id') &&
+                    firstPost.containsKey('description') &&
+                    firstPost.containsKey('photo_url') &&
+                    firstPost.containsKey('user_id') &&
+                    firstPost.containsKey('created_at')) {
+                  // Add to the queue
+                  postQueue.add(firstPost);
+
+                  // Process the queued posts
+                  //await processPostQueue(postQueue, userId, onNewPost);
+                } else {
+                  print("Invalid post structure: Missing required keys.");
+                }
+              } else {
+                print("Invalid post message structure.");
+              }
+            } catch (e) {
+              print("Error decoding post data: $e");
+              print("Problematic post data: $dataJson");
+            }
+          }
+        }
+      } else {
+        print('Failed to establish SSE connection. Retrying...');
+      }
+    } catch (e) {
+      print('Error while connecting to SSE: $e');
+    }
+
+    // Retry logic with exponential backoff
+    retryAttempts++;
+    if (retryAttempts < maxRetryAttempts) {
+      print('Retrying SSE connection in $retryDelaySeconds seconds...');
+      await Future.delayed(Duration(seconds: retryDelaySeconds));
+      retryDelaySeconds *= 2; // Exponential backoff
+    } else {
+      print('Max retry attempts reached.');
+      break;
+    }
+  }
+}
+
+  Future<void> updateMessage(String messageId, String updatedMessage) async {
+    try {
+      print('updating m');
+      //change this
+      final updateUri = Uri.parse('$apiUrl/message/updatemessagetext');
+      final response = await http.put(
+        updateUri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id': messageId,
+          'message': updatedMessage,
+        }),
+      );
+      print("status code ${response.statusCode}");
+      if (response.statusCode == 200) {
+        print("Message updated to $updatedMessage. ");
+      } else {
+        //print(  "Failed to update message status. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error updating message status: $e");
+    }
+  }
+
+  Future<void> deleteMessage(String inboxId, String messageId) async {
+    final response = await http.delete(
+      Uri.parse('$apiUrl/messages/$messageId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete message');
+    }
+  }
+
+  void listenToStatusSse(
+  List<String> inboxIds,
+  String userId,
+) async {
+  int retryAttempts = 0;
+  int retryDelaySeconds = 5; // Initial retry delay in seconds
+  final uri = Uri.parse(
+      '$apiUrl/message/statusSse?inboxIds=${inboxIds.join(',')}&userId=$userId');
+
+  String buffer = ''; // Buffer for incomplete messages
+  Queue<Map<String, dynamic>> statusQueue = Queue(); // Queue to store events
+
+  while (retryAttempts < maxRetryAttempts) {
+    try {
       final client = http.Client();
       final request = http.Request('GET', uri);
       request.headers.addAll({'Accept': 'text/event-stream'});
@@ -516,70 +691,140 @@ class ChatRepository {
 
       if (streamedResponse.statusCode == 200 ||
           streamedResponse.statusCode == 201) {
-        //print("SSE connection established successfully.");
         final eventStream = streamedResponse.stream;
 
         // Listen for incoming events
         await for (var chunk in eventStream) {
           String chunkString = utf8.decode(chunk);
-          //print("Received post chunk: $chunkString");
+          buffer += chunkString; // Append chunk to buffer
 
-          List<String> events = chunkString.split('\n');
-          for (var event in events) {
-            if (event.isNotEmpty) {
-              try {
-                if (event.startsWith('data:')) {
-                  String dataString = event.substring(5).trim();
-                  final post = json.decode(dataString);
+          // Try processing the buffer if we have a complete message
+          while (buffer.contains('data:')) {
+            int dataStart = buffer.indexOf('data:') + 5; // Skip 'data:' part
+            int dataEnd = buffer.indexOf('\n', dataStart); // Find end of data
 
-                  //print("Processing event: $post");
+            if (dataEnd == -1) {
+              break; // Wait for more data if we don't have a full message
+            }
 
-                  // Ensure that post is a list and check its content
-                  if (post is List && post.isNotEmpty) {
-                    final firstPost = post[0];
+            // Extract complete JSON data
+            String dataJson = buffer.substring(dataStart, dataEnd).trim();
+            buffer = buffer.substring(dataEnd + 1); // Update buffer with remaining data
 
-                    // Debug print the firstPost object to ensure the expected structure
-                    //print("First post object: $firstPost");
-
-                    // Check if the required keys are in the post object
-                    if (firstPost.containsKey('post_id') &&
-                        firstPost.containsKey('description') &&
-                        firstPost.containsKey('photo_url') &&
-                        firstPost.containsKey('user_id') &&
-                        firstPost.containsKey('created_at')) {
-                      //print("Valid message structure. Triggering onNewPost callback...");
-                      onNewPost(firstPost); // Trigger the callback
-
-                      // Call handleSsePosts to process further
-                      //print("Calling handleSsePosts...");
-                      handleSsePosts(firstPost, userId);
-
-                      //print("handleSsePosts called.");
-                      //print("onNewPost callback triggered.");
-                    } else {
-                      print("Invalid post structure. Missing required keys.");
-                      //print("Post structure: $firstPost");
-                    }
-                  } else {
-                    print("Invalid message structure: $post");
-                  }
+            // Try to decode the data JSON part
+            try {
+              final List<dynamic> messages = json.decode(dataJson);
+              for (var msg in messages) {
+                if (msg is Map<String, dynamic> && msg.containsKey('inboxid')) {
+                  statusQueue.add(msg); // Add valid message to the queue
                 }
-              } catch (e) {
-                //print("Error decoding event: $e");
               }
+
+              // Process the queued status messages
+              await processStatusQueue(statusQueue, inboxIds, userId);
+            } catch (e) {
+              print("Error decoding status message: $e");
+              print("Problematic status message: $dataJson");
             }
           }
         }
       } else {
-        //print("Error in SSE connection. Status code: ${streamedResponse.statusCode}");
+        print('Error in SSE connection. Status code: ${streamedResponse.statusCode}');
       }
     } catch (e) {
-      //print("Error listening to SSE: $e");
+      print('Error while connecting to SSE: $e');
+    }
 
-      // Retry logic with a delay
-      //print("Retrying SSE connection...");
-      await Future.delayed(Duration(seconds: 5));
-      listenToPostSse(inboxIds, userId, onNewPost); // Retry the connection
+    // Retry logic with exponential backoff
+    retryAttempts++;
+    if (retryAttempts < maxRetryAttempts) {
+      print('Retrying SSE connection in $retryDelaySeconds seconds...');
+      await Future.delayed(Duration(seconds: retryDelaySeconds));
+      retryDelaySeconds *= 2; // Exponential backoff
+    } else {
+      print('Max retry attempts reached.');
+      break;
     }
   }
+}
+
+  Future<void> processStatusQueue(
+    Queue<Map<String, dynamic>> statusQueue,
+    List<String> inboxIds,
+    String userId,
+) async {
+  // Process the queue until it's empty
+  while (statusQueue.isNotEmpty) {
+    // Get and remove the first message in the queue
+    Map<String, dynamic> message = statusQueue.removeFirst();
+    //print("Processing message: $message");
+
+    try {
+      // Call handleSseStatus here, passing the message and other required parameters
+      print("Calling handleSseStatus... $message, $inboxIds, $userId");
+      handleSseStatus(message, inboxIds, userId);  // Make sure it's async if needed
+
+      // Debugging message removal and queue length
+      print("Message processed and removed from queue. Queue length: ${statusQueue.length}");
+    } catch (e) {
+      // Error handling: If an error occurs while processing a message, log it
+      print("Error processing message: $e. Message: $message");
+      // You could decide to re-add the message to the queue for later retry or handle the error as appropriate
+    }
+  }
+
+  // Once the queue is empty, notify that no more status events remain
+  print("No more status in the queue.");
+}
+
+  void handleSseStatus(Map<String, dynamic> message,
+      List<String> activeInboxIds, String currentUserId) async {
+    if ((message['userid']).toString() == currentUserId) {}
+    try {
+      String inboxId =
+          message['inboxid'].toString(); // Ensure inboxId is a string
+      String messageId = message['id']
+          .toString(); // Convert messageId to string if it's an integer
+      //print("Inbox ID: $inboxId");
+
+      String newStatus =
+          message['status'].toString(); // Ensure newStatus is a string
+      print("");
+      if (activeInboxIds.contains(inboxId)) {
+        //print("Message belongs to an active inbox.");
+
+        print(
+            'updating status in local database id $messageId, new status $newStatus');
+
+        // Update the status in the local database
+        await LocalDatabase.updateMessageStatus(messageId, newStatus);
+
+        // Retrieve the last message in the inbox after update
+        await LocalDatabase.getLastMessage(inboxId);
+
+        // Update the last message cache (if needed)
+        _updateLastMessageCache(inboxId, message);
+      } else {
+        print("Message does not belong to any active inbox.");
+      }
+    } catch (e) {
+      print("Error handling SSE message: $e");
+    }
+  }
+
+  // Check if the message already exists in local storage
+}
+
+class MessageStatus {
+  final int id;
+  final String status;
+  final int inboxid;
+  final int userid;
+
+  MessageStatus({
+    required this.id,
+    required this.status,
+    required this.inboxid,
+    required this.userid,
+  });
 }
