@@ -249,7 +249,7 @@ class _ChatsState extends State<Chats> {
                                 newStatus,
                               );
                               print(
-                                  "updating message to seen $messageId, ${widget.myUserId}");
+                                  "updating message to seen, message id $messageId, ${widget.myUserId}");
                             } else {
                               print("not updating message to seen");
                             }
@@ -276,3 +276,11 @@ class _ChatsState extends State<Chats> {
     );
   }
 }
+                                                                  
+                                                                                                                                                          
+                                                                                                                                                                            
+                            
+                                               
+                                                                  
+                
+                              

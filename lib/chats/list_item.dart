@@ -72,6 +72,14 @@ class UserListItem extends StatelessWidget {
       dotColor = Colors.blue;
     } else {
       dotColor = Colors.grey; // Default to grey if status is unknown
+
+      return Container(
+          width: 8.0,
+          height: 8.0,
+          decoration: BoxDecoration(
+            color: dotColor,
+            shape: BoxShape.circle,
+          ));
     }
     return Row(
       mainAxisSize: MainAxisSize.min, // Ensure the row takes the minimum space
@@ -167,24 +175,24 @@ class UserListItem extends StatelessWidget {
                 //print("$status");
                 // Debug the status value before using it
                 //print("Status for inboxId: $inboxId is: $status");
-return Row(
-  children: [
-    Text(
-      lastMessage,
-      style: TextStyle(color: Colors.black87),
-    ),
-    if (sender.toString() == myUserId) ...[
-      const SizedBox(width: 10),
-      _getStatusDot(status), // Function to return the status dot
-      const Spacer(), // Optional: Adds spacing at the end of the row
-    ],
-    Text(
-      formattedTime,
-      style: TextStyle(color: Colors.grey),
-    ),
-  ],
-);
-
+                return Row(
+                  children: [
+                    Text(
+                      lastMessage,
+                      style: TextStyle(color: Colors.black87),
+                    ),
+                    if (sender.toString() == myUserId) ...[
+                      const SizedBox(width: 10),
+                      _getStatusDot(
+                          status), // Function to return the status dot
+                      const Spacer(), // Optional: Adds spacing at the end of the row
+                    ],
+                    Text(
+                      formattedTime,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                );
               }
             },
           ),
