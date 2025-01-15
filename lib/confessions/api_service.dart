@@ -324,7 +324,7 @@ Future<bool> likeConfession({
       );
 
       // Log the response for debugging
-      //print('is user like confession Response status: ${response.statusCode}');
+      print('is user like confession Response status: ${response.statusCode} $confessionId');
       //print('is user like confession Response body: ${response.body}');
 
       // Handle success response (status code 200)
