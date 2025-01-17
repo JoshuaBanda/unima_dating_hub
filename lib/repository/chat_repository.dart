@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '/localDataBase/local_database.dart';
 import 'package:unima_dating_hub/notifications/notification_service.dart';
 import 'package:unima_dating_hub/notifications/post_notifications_service.dart';
+import 'package:unima_dating_hub/notifications/business_notifications_service.dart';
 
 import 'dart:async';
 import 'dart:collection'; // For using Queue
@@ -62,7 +63,6 @@ class ChatRepository {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('decodede message $data');
         return data.isNotEmpty ? data : [];
       } else {
         throw Exception('Failed to load messages');
@@ -437,6 +437,41 @@ class ChatRepository {
     }
   }
 
+
+  Future<void> processPostQueue(
+      Queue<Map<String, dynamic>> postQueue,
+      List<String> inboxIds,
+      String userId,
+      void Function(Map<String, dynamic>) onNewPost) async {
+    // Check if there are messages in the queue
+    if (postQueue.isNotEmpty) {
+      // Get the first message in the queue
+      Map<String, dynamic> message = postQueue.first;
+      //print("Processing message: $message");
+
+
+      // Call handleSseMessage here, passing the message and other required parameters
+      //print("Calling handleSseMessage...");
+      handleSsePosts(message,userId);
+
+      // Remove the processed message from the queue
+      postQueue.removeFirst();
+      //print("Message processed and removed from queue. Queue length: ${messageQueue.length}");
+
+      // Ensure the next message is processed
+      //print("Checking if more messages are in the queue...");
+      if (postQueue.isNotEmpty) {
+        //print( "There are more messages in the queue. Processing next message...");
+        await processPostQueue(postQueue, inboxIds, userId, onNewPost);
+      } else {
+        //print("No more messages in the queue.");
+      }
+    } else {
+      //print("Queue is empty, no message to process.");
+    }
+  }
+
+
 // Helper function to update message status
   Future<void> updateMessageStatusToSent(
       String messageId, String newStatus) async {
@@ -605,10 +640,12 @@ class ChatRepository {
                       firstPost.containsKey('user_id') &&
                       firstPost.containsKey('created_at')) {
                     // Add to the queue
-                    //postQueue.add(firstPost);
+                    postQueue.add(firstPost);
 
                     // Process the queued posts
                     //await processPostQueue(postQueue, userId, onNewPost);
+                    
+                await processPostQueue(postQueue, inboxIds, userId, onNewPost);
                   } else {
                     print("Invalid post structure: Missing required keys.");
                   }
@@ -771,7 +808,7 @@ class ChatRepository {
 
       try {
         // Call handleSseStatus here, passing the message and other required parameters
-        print("Calling handleSseStatus... $message, $inboxIds, $userId");
+        //print("Calling handleSseStatus... $message, $inboxIds, $userId");
         handleSseStatus(
             message, inboxIds, userId); // Make sure it's async if needed
 
@@ -825,6 +862,196 @@ class ChatRepository {
   }
 
   // Check if the message already exists in local storage
+
+  void listenToBusinessSse(
+    List<String> inboxIds,
+    String userId,
+    void Function(Map<String, dynamic>) onNewBusiness,
+  ) async {
+    int retryAttempts = 0;
+    //we change the api
+    final uri = Uri.parse('$apiUrl/message/business-sse');
+
+    String buffer = ''; // Buffer for incomplete messages
+    Queue<Map<String, dynamic>> businessQueue = Queue();
+
+    while (retryAttempts < maxRetryAttempts) {
+      try {
+        final request = http.Request('GET', uri);
+        request.headers.addAll({'Accept': 'text/event-stream'});
+
+        final streamedResponse = await client.send(request);
+
+        if (streamedResponse.statusCode == 200 ||
+            streamedResponse.statusCode == 201) {
+          final eventStream = streamedResponse.stream;
+
+          // Listen for incoming events
+          await for (var chunk in eventStream) {
+            String chunkString = utf8.decode(chunk);
+            buffer += chunkString; // Append chunk to buffer
+
+            // Try processing the buffer if we have a complete message
+            while (buffer.contains('data:')) {
+              int dataStart = buffer.indexOf('data:') + 5; // Skip 'data:' part
+              int dataEnd = buffer.indexOf('\n', dataStart); // Find end of data
+
+              if (dataEnd == -1) {
+                break; // Wait for more data if we don't have a full message
+              }
+
+              // Extract complete JSON data
+              String dataJson = buffer.substring(dataStart, dataEnd).trim();
+              buffer = buffer
+                  .substring(dataEnd + 1); // Update buffer with remaining data
+
+              // Try to decode the data JSON part
+              try {
+                final List<dynamic> businesses = json.decode(dataJson);
+                if (businesses.isNotEmpty && businesses is List) {
+                  final firstBusiness = businesses[0];
+
+                  // Validate the structure of the post
+                  if (firstBusiness.containsKey('business_id') &&
+                      firstBusiness.containsKey('description') &&
+                      firstBusiness.containsKey('photo_url') &&
+                      firstBusiness.containsKey('user_id') &&
+                      firstBusiness.containsKey('created_at')) {
+                    // Add to the queue
+                    businessQueue.add(firstBusiness);
+
+                    // Process the queued posts
+                    //await processPostQueue(postQueue, userId, onNewPost);
+                    
+                await processPostQueue(businessQueue, inboxIds, userId, onNewBusiness);
+                  } else {
+                    print("Invalid business structure: Missing required keys.");
+                  }
+                } else {
+                  print("Invalid business message structure.");
+                }
+              } catch (e) {
+                print("Error decoding business data: $e");
+                print("Problematic business data: $dataJson");
+              }
+            }
+          }
+        } else {
+          print('Failed to establish Business SSE connection. Retrying...');
+        }
+      } catch (e) {
+        print('Error while connecting to business SSE: $e');
+      }
+
+      // Retry logic with exponential backoff
+      retryAttempts++;
+      if (retryAttempts < maxRetryAttempts) {
+        print('Retrying SSE connection in $retryDelaySeconds seconds...');
+        await Future.delayed(Duration(seconds: retryDelaySeconds));
+        retryDelaySeconds *= 2; // Exponential backoff
+      } else {
+        print('Max retry attempts reached.');
+        break;
+      }
+    }
+  }
+
+
+  void handleSseBusiness(Map<String, dynamic> business, String currentUserId) async {
+    try {
+      // Fetch user information (first name, last name, profile photo) for the sender
+      List<dynamic> users =
+          await ChatRepository.fetchUsersToMemory(currentUserId);
+      Map<String, dynamic>? sender = users.firstWhere(
+          (user) => user['userid'].toString() == business['user_id'].toString(),
+          orElse: () => null);
+
+      // If sender is unknown, do not show notification
+      if (sender == null) {
+        //print("Sender is unknown, not showing notification.");
+        return;
+      }
+
+      // If the business is from the current user, do not show a notification
+      //will change the userid to user_id letter
+      if ((business['userid']).toString() == currentUserId) {
+        //print("Sender is the current user, not showing notification.");
+      } else {
+        // If the message is not from the current user, show the notification
+        String senderName = '${sender['firstname']} ${sender['lastname']}';
+        String senderProfilePhoto = sender != null &&
+                sender['profilepicture'] != null &&
+                sender['profilepicture'] != ''
+            ? '${sender['profilepicture']}'
+            : 'default_profile_photo_url'; // Provide a default URL if not available
+
+        // Generate a unique notification ID (based on time)
+        String notificationId =
+            (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
+
+        // Show the notification with profile image and dynamic ID
+        //print("Showing notification: $senderName - ${post['description']}");
+        /*await PostNotificationsService.showNotification(
+          senderName, // Title
+          post['description'] ?? 'No post desription content', // Body
+          senderProfilePhoto, // Profile photo URL
+          post['userid'].toString(), // User ID
+          notificationId, // Notification ID (this is the dynamic ID)
+          currentUserId, // Current User ID
+          sender['firstname'] ?? 'First Name', // Sender's First Name
+          sender['lastname'] ?? 'Last Name', // Sender's Last Name
+          "1",
+        );*/
+        await BusinessNotificationsService  .showNotification(
+          'New Post Title', // Title
+          business['description'], // Body
+          business['photo_url'], // Photo URL
+          business['post_id'].toString(), // Post ID
+          business['user_id'].toString(), // User ID
+          senderName,
+          senderProfilePhoto,
+          business['created_at'], // Created At (use appropriate format)
+        );
+
+        //print("Notification sent: $senderName - ${post['descripyion']}");
+      }
+    } catch (e) {
+      //print("Error handling SSE post: $e");
+    }
+  }
+
+  Future<void> processBusinessQueue(
+      Queue<Map<String, dynamic>> businessQueue,
+      List<String> inboxIds,
+      String userId,
+      void Function(Map<String, dynamic>) onNewBusiness) async {
+    // Check if there are messages in the queue
+    if (businessQueue.isNotEmpty) {
+      // Get the first message in the queue
+      Map<String, dynamic> message = businessQueue.first;
+      //print("Processing message: $message");
+
+
+      // Call handleSseMessage here, passing the message and other required parameters
+      //print("Calling handleSseMessage...");
+      handleSseBusiness(message,userId);
+
+      // Remove the processed message from the queue
+      businessQueue.removeFirst();
+      //print("Message processed and removed from queue. Queue length: ${messageQueue.length}");
+
+      // Ensure the next message is processed
+      //print("Checking if more messages are in the queue...");
+      if (businessQueue.isNotEmpty) {
+        //print( "There are more messages in the queue. Processing next message...");
+        await processBusinessQueue(businessQueue, inboxIds, userId, onNewBusiness);
+      } else {
+        //print("No more messages in the queue.");
+      }
+    } else {
+      //print("Queue is empty, no message to process.");
+    }
+  }
 }
 
 class MessageStatus {

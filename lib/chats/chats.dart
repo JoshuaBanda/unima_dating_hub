@@ -132,6 +132,14 @@ class _ChatsState extends State<Chats> {
           _onNewMessageReceived(message);
         },
       );
+      
+      chatRepository.listenToBusinessSse(
+        activeInboxIds,
+        widget.myUserId,
+        (Map<String, dynamic> message) {
+          _onNewMessageReceived(message);
+        },
+      );
     } catch (e) {
       setState(() {
         error = 'Failed to load users';

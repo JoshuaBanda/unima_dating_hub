@@ -15,6 +15,7 @@ import 'package:unima_dating_hub/users/user_characteristics/update_user_characte
 import 'package:unima_dating_hub/confessions/main_confession_page.dart';
 import 'package:unima_dating_hub/settings/settings.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:unima_dating_hub/settings/notification_settings_page.dart';
 
 // Add a method to validate if the profile picture URL is valid
 bool isValidUrl(String url) {
@@ -241,7 +242,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
   title: Align(
     alignment: Alignment.bottomLeft, // Align the title slightly downward
     child: Padding(
-      padding: const EdgeInsets.only(top: 10.0), // Move the title slightly downward
+      padding: const EdgeInsets.only(top: 5.0), // Move the title slightly downward
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -284,7 +285,26 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => SearchPage(),
+              builder: (context) => SearchPage(
+                myUserId:currentUserId ,
+                jwtToken: jwt_token,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+    Padding(
+      padding: const EdgeInsets.only(right: 0.0, top: 40.0), 
+      child: IconButton(
+        icon: const Icon(Icons.notifications, color: Colors.black),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>  NotificationsSettingsPage(
+                userId: currentUserId,
+              ),
             ),
           );
         },

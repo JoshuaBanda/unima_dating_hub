@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:unima_dating_hub/users/user_characteristics/preferences.dart';
 import 'package:unima_dating_hub/users/user_characteristics/user_characteristics_page.dart';
 import 'package:unima_dating_hub/users/profile_page.dart';
+import 'notification_settings_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final String currentUserId; // Accept the currentUserId parameter
@@ -85,7 +86,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       // Navigate to Notifications Settings
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => NotificationsSettingsPage()),
+                        MaterialPageRoute(builder: (context) => NotificationsSettingsPage(
+                          userId: currentUserId,
+                        )),
                       );
                     },
                   ),
@@ -178,18 +181,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// Dummy Notifications Settings Page
-class NotificationsSettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Notifications Settings')),
-      body: Center(
-        child: const Text('Manage your notification preferences here.'),
-      ),
-    );
-  }
-}
 
 // Dummy Privacy Settings Page
 class PrivacySettingsPage extends StatelessWidget {
