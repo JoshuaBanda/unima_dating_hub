@@ -11,10 +11,8 @@ import '/users/profile_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:unima_dating_hub/posts/create_post_page.dart';
 import 'package:animated_text_kit/animated_text_kit.dart'; // Import AnimatedTextKit
-import 'package:unima_dating_hub/users/user_characteristics/update_user_characteristics_page.dart';
 import 'package:unima_dating_hub/confessions/main_confession_page.dart';
 import 'package:unima_dating_hub/settings/settings.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:unima_dating_hub/settings/notification_settings_page.dart';
 
 // Add a method to validate if the profile picture URL is valid
@@ -184,37 +182,39 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "UNIMA DATES", // Text to display
-                  style: GoogleFonts.montserrat(
-                    textStyle: TextStyle(
-                      foreground: Paint()
-                        ..shader = LinearGradient(
-                          colors: [
-                            Colors.pink,
-                            Colors.red
-                          ],
-                        ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
-                      fontStyle: FontStyle.italic, // Italic font style
-                      fontSize: 32, // Font size set to 32
-                    ),
-                  ),
-                ),
+            "Unima Dating Hub", // Text displayed on top
+            style: GoogleFonts.lobster(
+              textStyle: TextStyle(
+                foreground: Paint()
+                  ..shader = LinearGradient(
+                    colors: [
+                      Colors.pink,
+                      const Color.fromARGB(255, 253, 183, 77),
+                      Colors.red
+                    ],
+                  ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                fontStyle: FontStyle.normal,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
                 SizedBox(height: 20), // Space between the text and the dots
                 // Animated dots progress indicator
                 AnimatedTextKit(
                   animatedTexts: [
                     TyperAnimatedText(
-                      "Get your match",
+                      "....",
                       textStyle: TextStyle(
-                        fontSize: 24,
+                        fontSize: 50,
                         fontWeight: FontWeight.bold,
-                        color: const Color.fromARGB(248, 255, 102, 1),
+                        color: const Color.fromARGB(248, 247, 29, 0),
                       ),
                     ),
                     TyperAnimatedText(
                       "....",
                       textStyle: TextStyle(
-                        fontSize: 30,
+                        fontSize: 50,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -222,7 +222,7 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
                   ],
                   totalRepeatCount: 2, // Repeat the animation a few times
                   pause: Duration(
-                      milliseconds: 500), // Pause between animation loops
+                      milliseconds: 1000), // Pause between animation loops
                 ),
               ],
             ),
@@ -245,21 +245,23 @@ class _FarmSmartScreenState extends State<FarmSmartScreen> {
       padding: const EdgeInsets.only(top: 5.0), // Move the title slightly downward
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Unima Dates", // Text displayed on top
-            style:GoogleFonts.sourceSansPro(
-  textStyle: TextStyle(
-    foreground: Paint()
-      ..shader = LinearGradient(
-        colors: [Colors.pink, const Color.fromARGB(255, 253, 183, 77),Colors.red],
-      ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
-    fontStyle: FontStyle.normal,
-    fontSize: 32,
-    fontWeight: FontWeight.w700,
-  ),
-)
-
+        children: [Text(
+            "Unima Dating Hub", // Text displayed on top
+            style: GoogleFonts.lobster(
+              textStyle: TextStyle(
+                foreground: Paint()
+                  ..shader = LinearGradient(
+                    colors: [
+                      Colors.pink,
+                      const Color.fromARGB(255, 253, 183, 77),
+                      Colors.red
+                    ],
+                  ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                fontStyle: FontStyle.normal,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           SizedBox(height: 4.0), // Adds a little space between "Unima Dates" and the name
           Text(

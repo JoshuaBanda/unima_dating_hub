@@ -111,7 +111,7 @@ class _ProfilePageState extends State<ProfilePage> {
       'seconduserid': int.parse(widget.secondUserId),
     };
 
-    print("Sending friend request: $requestData");
+    //print("Sending friend request: $requestData");
 
     try {
       final response = await http.post(
@@ -121,7 +121,7 @@ class _ProfilePageState extends State<ProfilePage> {
         body: json.encode(requestData),
       );
 
-      print("Friend request response status: ${response.statusCode}");
+      //print("Friend request response status: ${response.statusCode}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
@@ -129,7 +129,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
         final inbox = json.decode(response.body);
         if (inbox.isNotEmpty) {
-          print("Friend request successful. Navigating to chat.");
+         // print("Friend request successful. Navigating to chat.");
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -155,7 +155,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         creatingInbox = false;
       });
-      print("Error sending friend request: $e");
+     // print("Error sending friend request: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
@@ -171,7 +171,7 @@ class _ProfilePageState extends State<ProfilePage> {
       'seconduserid': int.parse(widget.secondUserId),
     };
 
-    print("Sending message screen request: $requestData");
+    //print("Sending message screen request: $requestData");
 
     try {
       final response = await http.post(
@@ -181,7 +181,7 @@ class _ProfilePageState extends State<ProfilePage> {
         body: json.encode(requestData),
       );
 
-      print("Message screen request response status: ${response.statusCode}");
+      //print("Message screen request response status: ${response.statusCode}");
 
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 500) {
         setState(() {
@@ -189,7 +189,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
         final inbox = json.decode(response.body);
         if (inbox.isNotEmpty) {
-          print("Message screen opened. Navigating to chat.");
+         // print("Message screen opened. Navigating to chat.");
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -207,7 +207,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           creatingInbox = false;
         });
-        print("Failed to start conversation.");
+       // print("Failed to start conversation.");
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to start conversation')));
       }
@@ -215,7 +215,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         creatingInbox = false;
       });
-      print("Error opening message screen: $e");
+     // print("Error opening message screen: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:unima_dating_hub/chats/profile_page.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart'; // Import flutter_spinkit
 
 class SearchPage extends StatefulWidget {
   final String myUserId;
@@ -136,9 +137,8 @@ class _SearchPageState extends State<SearchPage> {
             
             // Display loading spinner when fetching data
             if (_isLoading)
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
-              ),
+              SpinKitFadingCircle(color: Colors.grey, size: 30.0),
+            
             
             // Display error message if any
             if (_errorMessage.isNotEmpty)

@@ -67,7 +67,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       }
     } catch (e) {
       // Log the error instead of print
-      print('Error fetching users: $e');
+      //print('Error fetching users: $e');
       // Check if the error is related to missing preferences (you can customize this part depending on the error message)
       if (e.toString().contains('Failed to fetch users')) {
         _showPreferenceDialog(context); // Pass the context as an argument
@@ -98,7 +98,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
 
     // Log the grouped users
-    print("Grouped Users: $groupedUsers");
+    //print("Grouped Users: $groupedUsers");
   }
 
   @override

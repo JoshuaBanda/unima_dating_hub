@@ -18,6 +18,7 @@ class BusinessNotificationsService {
 
   // Initialize the plugin
   static Future<void> initialize() async {
+    //print("Initializing BusinessNotificationsService...");
     tz_data.initializeTimeZones();
 
     // Request notification permission
@@ -46,12 +47,17 @@ class BusinessNotificationsService {
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+
+    //print("BusinessNotificationsService initialized.");
   }
 
   // Request notification permissions for Android 13+
   static Future<void> _requestNotificationPermission() async {
+   // print("Requesting notification permission...");
     if (await Permission.notification.request().isGranted) {
-      // Notification permission granted
+     // print("Notification permission granted.");
+    } else {
+     // print("Notification permission denied.");
     }
   }
 
@@ -59,12 +65,14 @@ class BusinessNotificationsService {
   static Future<void> onSelectNotification(NotificationResponse notificationResponse) async {
     final String? payload = notificationResponse.payload;
     if (payload != null) {
+     // print('Notification payload received: $payload');
       _navigateBasedOnPayload(payload);
     }
   }
 
   // Helper method to navigate based on the notification payload
   static void _navigateBasedOnPayload(String payload) {
+   // print("Navigating based on payload...");
     // Decode the payload into a map (if it's a JSON string)
     Map<String, dynamic> payloadData = jsonDecode(payload);
 
@@ -76,6 +84,8 @@ class BusinessNotificationsService {
     String senderName = payloadData['sender_name'];
     String senderProfilePicture = payloadData['sender_profile_picture'];
     String createdAt = payloadData['created_at'];
+
+    //print("Navigating to business with ID: $businessId");
 
     // Navigate to the relevant screen (e.g., business details screen)
     navigatorKey.currentState?.push(
@@ -97,22 +107,32 @@ class BusinessNotificationsService {
     String createdAt,
   ) async {
     try {
+     // print("Preparing to show notification for business ID: $businessId");
+
       String? largeIconPath;
       String? senderIconPath;
 
       // Download the business photo if available
       if (photoUrl.isNotEmpty) {
+       // print("Downloading business photo...");
         final file = await _downloadAndSaveImage(photoUrl, businessId);
         if (file != null) {
           largeIconPath = file.path;
+        //  print("Business photo downloaded and saved at: ${file.path}");
+        } else {
+        //  print("Failed to download business photo.");
         }
       }
 
       // Download the sender's profile picture
       if (senderProfilePicture.isNotEmpty) {
+       // print("Downloading sender profile picture...");
         final senderFile = await _downloadAndSaveImage(senderProfilePicture, userId);
         if (senderFile != null) {
           senderIconPath = senderFile.path;
+       //   print("Sender profile picture downloaded and saved at: ${senderFile.path}");
+        } else {
+        //  print("Failed to download sender's profile picture.");
         }
       }
 
@@ -155,6 +175,8 @@ class BusinessNotificationsService {
         'created_at': createdAt,
       });
 
+     // print("Showing notification with payload: $payload");
+
       // Show the notification
       await flutterLocalNotificationsPlugin.show(
         int.parse(businessId),
@@ -163,19 +185,23 @@ class BusinessNotificationsService {
         platformChannelSpecifics,
         payload: payload, // Pass the payload directly
       );
+
+     // print("Notification displayed successfully for business ID: $businessId.");
     } catch (e) {
-      print("Error displaying notification: $e");
+     // print("Error displaying business notification: $e");
     }
   }
 
   // Helper method to download and save the image locally
   static Future<File?> _downloadAndSaveImage(String imageUrl, String businessId) async {
     try {
+     // print("Downloading image from URL: $imageUrl");
       final directory = await getTemporaryDirectory();
       final filePath = '${directory.path}/business_image_$businessId.jpg';
 
       final file = File(filePath);
       if (await file.exists()) {
+     //   print("Image already exists at: $filePath");
         return file;
       }
 
@@ -183,10 +209,13 @@ class BusinessNotificationsService {
       if (response.statusCode == 200) {
         final bytes = response.bodyBytes;
         await file.writeAsBytes(bytes);
+     //   print("Image saved to ${file.path}");
         return file;
+      } else {
+      //  print("Failed to download image, status code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error downloading image: $e");
+     // print("Error downloading image: $e");
     }
     return null;
   }
@@ -219,8 +248,9 @@ class BusinessNotificationsService {
         androidScheduleMode: AndroidScheduleMode.exact,
         payload: 'scheduled_message',
       );
+    //  print("Scheduled business notification successfully.");
     } catch (e) {
-      print("Error scheduling notification: $e");
+    //  print("Error scheduling notification: $e");
     }
   }
 }

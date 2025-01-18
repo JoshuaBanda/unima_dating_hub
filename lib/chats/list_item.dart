@@ -29,7 +29,7 @@ class UserListItem extends StatelessWidget {
   String formatTimestamp(String timestamp) {
     if (timestamp.isEmpty || timestamp == 'No timestamp available') {
       //print("Invalid timestamp: $timestamp");
-      return 'No timestamp available';
+      return '';
     }
 
     try {

@@ -59,23 +59,23 @@
 
       socket.connect();
       socket.on('connect', (_) {
-        print('Socket connected: ${socket.id}');
+        //print('Socket connected: ${socket.id}');
       });
 
       socket.on('disconnect', (_) {
-        print('Socket disconnected');
+        //print('Socket disconnected');
       });
 
       socket.on('connect_error', (error) {
-        print('Socket connection error: $error');
+       // print('Socket connection error: $error');
       });
 
       socket.on('refresh', (data) {
-        print('Received refresh data: $data');
+        //print('Received refresh data: $data');
         setState(() {
           if (data['data']['inboxid'] == inboxId &&
               data['data']['userid'] != widget.myUserId) {
-            print('Inserting message into currentMessages');
+           // print('Inserting message into currentMessages');
             currentMessages.add(data['data']); // Add new message at the bottom
             _sortMessagesByDate(); // Ensure messages are sorted after adding
             _scrollToBottom(); // Scroll to bottom after receiving new message
@@ -93,22 +93,22 @@
     try {
       await audioPlayer.play(AssetSource(soundPath));
     } catch (e) {
-      print('Error playing sound: $e');
+      //print('Error playing sound: $e');
     }
   }
 
     // Fetching inbox data and messages
     Future<Map<String, dynamic>> _fetchCommonInboxData() async {
       try {
-        print('Fetching inbox data...');
+       // print('Fetching inbox data...');
         final data = await chatRepository.fetchInboxData(widget.userId, widget.myUserId);
-        print('Inbox data received: $data');
+       // print('Inbox data received: $data');
         inboxId = data['inboxid'].toString();
         messagesFuture = chatRepository.fetchMessages(inboxId);
-        print("message $messagesFuture");
+        //print("message $messagesFuture");
         return data; // Return the inbox data
       } catch (e) {
-        print('Error fetching inbox data: $e');
+        //print('Error fetching inbox data: $e');
         throw Exception('Error fetching inbox data: $e');
       }
     }
@@ -134,16 +134,16 @@
       });
 
       try {
-        print('Sending message: $messageText');
+        //print('Sending message: $messageText');
         await chatRepository.sendMessage(inboxId, widget.myUserId, messageText,'sent');
-        print('Message sent successfully');
+       // print('Message sent successfully');
 
         socket.emit('triggerRefresh', {
           'inboxid': inboxId,
           'userid': widget.myUserId,
           'message': messageText,
         });
-        print('Sent triggerRefresh event to server');
+        //print('Sent triggerRefresh event to server');
 
         // After successful send, update the status to 'sent'
         setState(() {
@@ -152,7 +152,7 @@
 
         _playNotificationSound('sounds/message_sent.mp3');
       } catch (error) {
-        print('Error sending message: $error');
+        //print('Error sending message: $error');
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(error.toString())));
       } finally {
@@ -212,7 +212,7 @@ String _formatTime(String dateString) {
 
     @override
     void dispose() {
-      print('Disconnecting and disposing WebSocket...');
+      //print('Disconnecting and disposing WebSocket...');
       socket.disconnect();
       socket.dispose();
       super.dispose();
@@ -267,7 +267,7 @@ String _formatTime(String dateString) {
                   } else {
                     if (currentMessages.isEmpty) {
                       currentMessages = messageSnapshot.data ?? [];
-                      print('Initial messages loaded: $currentMessages');
+                      //print('Initial messages loaded: $currentMessages');
                       _sortMessagesByDate(); // Sort messages on initial load
                       _scrollToBottom(); // Scroll to bottom initially
                     }

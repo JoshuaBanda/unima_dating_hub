@@ -132,7 +132,7 @@ class _ChatsState extends State<Chats> {
           _onNewMessageReceived(message);
         },
       );
-      
+
       chatRepository.listenToBusinessSse(
         activeInboxIds,
         widget.myUserId,
@@ -177,7 +177,7 @@ class _ChatsState extends State<Chats> {
       final message = lastMessage['message'] ?? '';
       final createdAt = lastMessage['createdat'] ?? '';
       final lastMessageStatusv = lastMessage['status'];
-      final messageId = lastMessage['id']; // This is your message ID
+      final messageId = lastMessage['messageid']; // This is your message ID
       final sender = lastMessage['userid'];
 
       //print("Message ID: $messageId");
@@ -232,6 +232,8 @@ class _ChatsState extends State<Chats> {
                             // Fetch message ID and status before navigating
                             final lastMessage =
                                 await getLastMessageForUser(inboxId);
+
+                            //print('pending to update ${lastMessage}');
                             final messageId = lastMessage['messageId'];
                             final newStatus =
                                 'seen'; // Update this based on your logic
@@ -256,10 +258,9 @@ class _ChatsState extends State<Chats> {
                                 messageId.toString(),
                                 newStatus,
                               );
-                              print(
-                                  "updating message to seen, message id $messageId, ${widget.myUserId}");
+                              //print("updating message to seen, message id $messageId, ${widget.myUserId}");
                             } else {
-                              print("not updating message to seen");
+                              //print("not updating message to seen");
                             }
                           },
                           myUserId: widget.myUserId,
@@ -284,11 +285,3 @@ class _ChatsState extends State<Chats> {
     );
   }
 }
-                                                                  
-                                                                                                                                                          
-                                                                                                                                                                            
-                            
-                                               
-                                                                  
-                
-                              

@@ -112,41 +112,41 @@ class Tile extends StatelessWidget {
   String _getImagePath(int index) {
     switch (index) {
       case 0:
-        return 'assets/image6.jpg'; // Replace with your image path
+        return 'assets/image7.jpg'; // Replace with your image path
       case 1:
         return 'assets/image2.jpg'; // Replace with your image path
       case 2:
-        return 'assets/image3.jpg'; // Replace with your image path
+        return 'assets/love3.jpg'; // Replace with your image path
       case 3:
-        return 'assets/image4.jpg'; // Replace with your image path
+        return 'assets/couple.jpg'; // Replace with your image path
       case 4:
-        return 'assets/image5.jpg'; // Replace with your image path
+        return 'assets/love2.jpg'; // Replace with your image path
       case 5:
-        return 'assets/image4.jpg'; // Replace with your image path
+        return 'assets/love3.jpg'; // Replace with your image path
       case 6:
-        return 'assets/image7.jpg'; // Replace with your image path
+        return 'assets/love1.jpg'; // Replace with your image path
       case 7:
         return 'assets/image6.jpg'; // Replace with your image path
       case 8:
-        return 'assets/image2.jpg'; // Replace with your image path
+        return 'assets/love2.jpg'; // Replace with your image path
       case 9:
-        return 'assets/image3.jpg'; // Replace with your image path
+        return 'assets/image6.jpg'; // Replace with your image path
       case 10:
         return 'assets/image2.jpg'; // Replace with your image path
       case 11:
-        return 'assets/image5.jpg'; // Replace with your image path
+        return 'assets/love5.jpg'; // Replace with your image path
       case 12:
-        return 'assets/image1.jpg'; // Replace with your image path
-      case 13:
-        return 'assets/image7.jpg'; // Replace with your image path
-      case 14:
         return 'assets/image2.jpg'; // Replace with your image path
+      case 13:
+        return 'assets/love1.jpg'; // Replace with your image path
+      case 14:
+        return 'assets/love5.jpg'; // Replace with your image path
       case 15:
-        return 'assets/image5.jpg'; // Replace with your image path
+        return 'assets/love3.jpg'; // Replace with your image path
       case 16:
-        return 'assets/image3.jpg'; // Replace with your image path
+        return 'assets/love2.jpg'; // Replace with your image path
       case 17:
-        return 'assets/image1.jpg'; // Replace with your image path
+        return 'assets/love1.jpg'; // Replace with your image path
       default:
         return 'assets/image2.jpg'; // Default image if index doesn't match
     }

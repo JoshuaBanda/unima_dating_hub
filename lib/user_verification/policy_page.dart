@@ -45,10 +45,6 @@ class _PolicyPageState extends State<PolicyPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Unima Dating Hub User Policy'),
-        backgroundColor: Colors.white,
-      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
         child: SingleChildScrollView(

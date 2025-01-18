@@ -12,6 +12,7 @@ class PostPhotoFullPage extends StatefulWidget {
   final int currentUserId;
   final String currentEmail;
   final String jwtToken; // Add jwtToken parameter
+  final int likeCount; // Add likeCount parameter
 
   const PostPhotoFullPage({
     super.key,
@@ -22,6 +23,7 @@ class PostPhotoFullPage extends StatefulWidget {
     required this.currentUserId,
     required this.currentEmail,
     required this.jwtToken, // Initialize jwtToken
+    required this.likeCount, // Initialize likeCount
   });
 
   @override
@@ -98,33 +100,47 @@ class _PostPhotoFullPageState extends State<PostPhotoFullPage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 10),
-                // Like Button - Use the LikeButton widget
-                LikeButton(
-                  postId: widget.postId,
-                  userId: widget.currentUserId,
-                  jwtToken: widget.jwtToken,
-                  initialLikeCount: 0, // Set an initial like count if necessary
-                  initialLikeStatus: widget.isLiked, // Use the current like status
-                ),
-                SizedBox(height: 10),
-                // Comment Button
-                IconButton(
-                  icon: Icon(
-                    Icons.comment,
-                    color: Colors.white,
-                  ),
-                  onPressed: () {
-                    // Open CommentDialog just as in the PostItem widget
-                    showDialog(
-                      context: context,
-                      builder: (context) => CommentDialog(
-                        postId: widget.postId,
-                        currentUserId: widget.currentUserId,
-                        currentEmail: widget.currentEmail,
-                        jwtToken: widget.jwtToken, // Pass jwtToken to CommentDialog
+                // Row to align like and comment buttons horizontally
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Like Button with Like Count
+                    Row(
+                      children: [
+                        LikeButton(
+                          postId: widget.postId,
+                          userId: widget.currentUserId,
+                          jwtToken: widget.jwtToken,
+                          initialLikeCount: widget.likeCount, // Pass the initial like count
+                          initialLikeStatus: widget.isLiked, // Use the current like status
+                        ),
+                        SizedBox(width: 8), // Space between the Like Button and count
+                        Text(
+                          '${widget.likeCount}', // Display the like count
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    // Comment Button
+                    IconButton(
+                      icon: Icon(
+                        Icons.comment,
+                        color: Colors.white,
                       ),
-                    );
-                  },
+                      onPressed: () {
+                        // Open CommentDialog just as in the PostItem widget
+                        showDialog(
+                          context: context,
+                          builder: (context) => CommentDialog(
+                            postId: widget.postId,
+                            currentUserId: widget.currentUserId,
+                            currentEmail: widget.currentEmail,
+                            jwtToken: widget.jwtToken, // Pass jwtToken to CommentDialog
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

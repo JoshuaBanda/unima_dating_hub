@@ -324,7 +324,7 @@ Future<bool> likeConfession({
       );
 
       // Log the response for debugging
-      print('is user like confession Response status: ${response.statusCode} $confessionId');
+      //print('is user like confession Response status: ${response.statusCode} $confessionId');
       //print('is user like confession Response body: ${response.body}');
 
       // Handle success response (status code 200)
@@ -380,7 +380,7 @@ Future<bool> likeConfession({
       if (response.statusCode == 200) {
         // Check if the response body is empty
         if (response.body.isEmpty) {
-          print('No likes found for this confession');
+          //print('No likes found for this confession');
           return 0; // Return 0 likes if no data is found
         } else {
           // Parse the response body as a list of like objects

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'confession_list.dart';
 import 'create_confession_page.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AnonymousConfessionPage extends StatelessWidget {
   final String jwtToken;
@@ -21,7 +22,7 @@ class AnonymousConfessionPage extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.pink, Colors.blue], // Example gradient
+            colors: [const Color.fromARGB(227, 253, 243, 242), const Color.fromARGB(159, 255, 255, 255)], // Example gradient
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -39,7 +40,7 @@ class AnonymousConfessionPage extends StatelessWidget {
                   icon: FaIcon(
                     FontAwesomeIcons.masksTheater, // Theatrical mask icon
                     size: 40.0,
-                    color: Colors.white,
+                    color: Colors.pink,
                   ),
                   onPressed: () {
                     // Navigate to the confession creation page
@@ -54,13 +55,15 @@ class AnonymousConfessionPage extends StatelessWidget {
                 ),
                 // Text under the icon
                 Text(
-                  'Confess',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.0,
-                    letterSpacing: 1,
-                  ),
-                ),
+            "Confess", // The first name and last name
+            style: GoogleFonts.indieFlower(
+              textStyle: TextStyle(
+                color: Colors.pink,
+                fontStyle: FontStyle.italic,
+                fontSize: 18,
+              ),
+            ),
+          ),
               ],
             ),
             // Widget to display a list of anonymous Confessions

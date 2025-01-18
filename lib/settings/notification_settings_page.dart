@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert'; // For parsing the response
 import 'notification_model.dart' as custom_notification; // Import the custom Notification model
 import 'notification_widget.dart'; // Import the NotificationWidget
+import 'package:flutter_spinkit/flutter_spinkit.dart'; // Import flutter_spinkit
 
 class NotificationsSettingsPage extends StatefulWidget {
   final String userId; // Assuming you have the user ID passed into this page
@@ -25,11 +26,11 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
 
     try {
       final response = await http.get(Uri.parse(url));
-      print("status code ${response.statusCode}");
+      //print("status code ${response.statusCode}");
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);  // Directly parse the response as a list
-        print("$data");
+        //print("$data");
 
         setState(() {
           // Map over the list to create Notification objects
@@ -45,7 +46,7 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
         throw Exception('Failed to load notifications');
       }
     } catch (e) {
-      print('Error fetching notifications: $e');
+     // print('Error fetching notifications: $e');
     } finally {
       setState(() {
         isLoading = false; // Stop loading once the request is complete
@@ -62,11 +63,20 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications Settings'),
+appBar: AppBar(
+        title: Text('Search'),
+        backgroundColor: Colors.white, // Set the app bar color
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1.0),
+          child: Container(
+            color: Colors.grey, // Set the underline to grey
+            height: 1.0,
+          ),
+        ),
+      
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator()) // Show loading indicator
+          ? Center(child:SpinKitFadingCircle(color: Colors.grey, size: 30.0),) // Show loading indicator
           : notifications.isEmpty
               ? Center(child: Text('No notifications available.'))
               : ListView.builder(

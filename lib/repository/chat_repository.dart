@@ -53,7 +53,7 @@ class ChatRepository {
 
       // If messages exist in local storage, return them
       if (localMessages.isNotEmpty) {
-        print(localMessages);
+       // print(localMessages);
         return localMessages;
       }
 
@@ -68,7 +68,7 @@ class ChatRepository {
         throw Exception('Failed to load messages');
       }
     } catch (e) {
-      print("Error fetching messages: $e");
+     //print("Error fetching messages: $e");
       throw Exception('Error fetching messages: $e');
     }
   }
@@ -150,7 +150,7 @@ class ChatRepository {
   static Future<List<dynamic>> fetchUsersToMemory(String userId) async {
     // Check if the users are already cached
     if (_cachedUsers.isNotEmpty) {
-      print("Returning cached users");
+     // print("Returning cached users");
       return _cachedUsers; // Return cached users
     }
 
@@ -161,7 +161,7 @@ class ChatRepository {
       if (response.statusCode == 200) {
         final List<dynamic> users = json.decode(response.body);
         _cachedUsers = users; // Cache the users in the static list
-        print("Fetched users from API");
+       // print("Fetched users from API");
         return users; // Return the users fetched from the API
       } else {
         throw Exception('Failed to fetch users');
@@ -193,8 +193,7 @@ class ChatRepository {
               .toIso8601String(); // Use 'createdat' from message or current time
 
       // Save the message in the local database
-      print(
-          "Inserting message: inboxid=$inboxIdStr, userid=$userIdStr, message=$messageText, messageId=$messageId, status=$status, createdAt=$createdAt");
+     // print(     "Inserting message: inboxid=$inboxIdStr, userid=$userIdStr, message=$messageText, messageId=$messageId, status=$status, createdAt=$createdAt");
       await LocalDatabase.saveMessage(inboxIdStr, userIdStr, messageText,
           messageId, createdAt, // Pass createdAt as a parameter
           status: status);
@@ -202,7 +201,7 @@ class ChatRepository {
       // Now, update the last message cache for the given inbox
       _updateLastMessageCache(inboxIdStr, message);
     } catch (e) {
-      print("Error saving received message: $e");
+     // print("Error saving received message: $e");
     }
   }
 
@@ -217,10 +216,10 @@ class ChatRepository {
 
         // Now, instead of skipping messages from the current user, allow them to be saved
         bool messageExists = await _checkMessageExists(inboxId, message);
-        print("Message exists in local storage: $messageExists");
+       // print("Message exists in local storage: $messageExists");
 
         if (!messageExists) {
-          print("Message does not exist. Saving it. $message");
+       //   print("Message does not exist. Saving it. $message");
           await saveReceivedMessage(inboxId, message);
           _updateLastMessageCache(inboxId, message);
 
@@ -238,10 +237,10 @@ class ChatRepository {
             return;
           }
 
-          print("message id $message");
+         // print("message id $message");
           // If the sender is the current user, do not show notification
           if ((message['userid']).toString() == currentUserId) {
-            print("Sender is the current user, not showing notification.");
+         //   print("Sender is the current user, not showing notification.");
           } else {
             // Update the message status to 'received'
             //await updateMessageStatus(message[0]['messageId'], 'received');
@@ -261,7 +260,7 @@ class ChatRepository {
                 (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
 
             // Show the notification with profile image and dynamic ID
-            print("Showing notification: $senderName - ${message['message']}");
+           // print("Showing notification: $senderName - ${message['message']}");
             await NotificationService.showNotification(
               senderName, // Title
               message['message'] ?? 'No message content', // Body
@@ -274,17 +273,17 @@ class ChatRepository {
               inboxId, // Passing inboxId here from the SSE message
             );
 
-            print("$senderName $notificationId $inboxId");
-            print("Notification sent: $senderName - ${message['message']}");
+          //  print("$senderName $notificationId $inboxId");
+          //  print("Notification sent: $senderName - ${message['message']}");
           }
         } else {
-          print("Message already exists, not saving.");
+        //  print("Message already exists, not saving.");
         }
       } else {
-        print("Message does not belong to any active inbox.");
+       // print("Message does not belong to any active inbox.");
       }
     } catch (e) {
-      print("Error handling SSE message: $e");
+     // print("Error handling SSE message: $e");
     }
   }
 
@@ -303,14 +302,15 @@ class ChatRepository {
 
         // Compare the message content and user ID (ignore createdat for duplicate check)
 
-        bool isDuplicate =storedMessage['messageid'] == message['id'].toString();
+        bool isDuplicate =
+            storedMessage['messageid'] == message['id'].toString();
         if (isDuplicate) {
           return true; // Message exists in local storage
         }
       }
       return false; // Message does not exist
     } catch (e) {
-      print("Error checking if message exists: $e");
+     // print("Error checking if message exists: $e");
       return false; // Return false if there is an error
     }
   }
@@ -377,26 +377,26 @@ class ChatRepository {
                 await processMessageQueue(
                     messageQueue, inboxIds, userId, onNewMessage);
               } catch (e) {
-                print("Error decoding JSON message: $e");
-                print("Problematic message data: $dataJson");
+              //  print("Error decoding JSON message: $e");
+              //  print("Problematic message data: $dataJson");
               }
             }
           }
         } else {
-          print('Failed to establish SSE connection. Retrying...');
+         // print('Failed to establish SSE connection. Retrying...');
         }
       } catch (e) {
-        print('Error while connecting to SSE: $e');
+       // print('Error while connecting to SSE: $e');
       }
 
       // Retry logic with exponential backoff
       retryAttempts++;
       if (retryAttempts < maxRetryAttempts) {
-        print('Retrying SSE connection in $retryDelaySeconds seconds...');
+       // print('Retrying SSE connection in $retryDelaySeconds seconds...');
         await Future.delayed(Duration(seconds: retryDelaySeconds));
         retryDelaySeconds *= 2; // Exponential backoff
       } else {
-        print('Max retry attempts reached.');
+      //  print('Max retry attempts reached.');
         break;
       }
     }
@@ -437,7 +437,6 @@ class ChatRepository {
     }
   }
 
-
   Future<void> processPostQueue(
       Queue<Map<String, dynamic>> postQueue,
       List<String> inboxIds,
@@ -449,10 +448,9 @@ class ChatRepository {
       Map<String, dynamic> message = postQueue.first;
       //print("Processing message: $message");
 
-
       // Call handleSseMessage here, passing the message and other required parameters
       //print("Calling handleSseMessage...");
-      handleSsePosts(message,userId);
+      handleSsePosts(message, userId);
 
       // Remove the processed message from the queue
       postQueue.removeFirst();
@@ -471,12 +469,11 @@ class ChatRepository {
     }
   }
 
-
 // Helper function to update message status
   Future<void> updateMessageStatusToSent(
       String messageId, String newStatus) async {
     try {
-      print('$messageId $newStatus');
+     //print('$messageId $newStatus');
       //change this
       final updateUri = Uri.parse('$apiUrl/message/update');
       final response = await http.put(
@@ -487,21 +484,21 @@ class ChatRepository {
           'status': newStatus,
         }),
       );
-      print("status code ${response.statusCode}");
+     // print("status code ${response.statusCode}");
       if (response.statusCode == 200) {
-        print("Message status updated to $newStatus. ");
+       // print("Message status updated to $newStatus. ");
       } else {
         //print(  "Failed to update message status. Status code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error updating message status: $e");
+     // print("Error updating message status: $e");
     }
   }
 
   Future<void> updateMessageStatusToSeen(
       String messageId, String newStatus) async {
     try {
-      print('$messageId $newStatus');
+    //  print('$messageId $newStatus');
       //change this
       final updateUri = Uri.parse('$apiUrl/message/update');
       final response = await http.put(
@@ -512,14 +509,14 @@ class ChatRepository {
           'status': newStatus,
         }),
       );
-      print("status code ${response.statusCode}");
+     // print("status code ${response.statusCode}");
       if (response.statusCode == 200) {
-        print("Message status updated to $newStatus. ");
+      //  print("Message status updated to $newStatus. ");
       } else {
         //print(  "Failed to update message status. Status code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error updating message status: $e");
+     // print("Error updating message status: $e");
     }
   }
 
@@ -569,7 +566,7 @@ class ChatRepository {
           "1",
         );*/
         await PostNotificationsService.showNotification(
-          'New Post Title', // Title
+          'New Post', // Title
           post['description'], // Body
           post['photo_url'], // Photo URL
           post['post_id'].toString(), // Post ID
@@ -644,35 +641,36 @@ class ChatRepository {
 
                     // Process the queued posts
                     //await processPostQueue(postQueue, userId, onNewPost);
-                    
-                await processPostQueue(postQueue, inboxIds, userId, onNewPost);
+
+                    await processPostQueue(
+                        postQueue, inboxIds, userId, onNewPost);
                   } else {
-                    print("Invalid post structure: Missing required keys.");
+                  //  print("Invalid post structure: Missing required keys.");
                   }
                 } else {
-                  print("Invalid post message structure.");
+                 // print("Invalid post message structure.");
                 }
               } catch (e) {
-                print("Error decoding post data: $e");
-                print("Problematic post data: $dataJson");
+              //  print("Error decoding post data: $e");
+              //  print("Problematic post data: $dataJson");
               }
             }
           }
         } else {
-          print('Failed to establish SSE connection. Retrying...');
+        //  print('Failed to establish SSE connection. Retrying...');
         }
       } catch (e) {
-        print('Error while connecting to SSE: $e');
+       // print('Error while connecting to SSE: $e');
       }
 
       // Retry logic with exponential backoff
       retryAttempts++;
       if (retryAttempts < maxRetryAttempts) {
-        print('Retrying SSE connection in $retryDelaySeconds seconds...');
+       // print('Retrying SSE connection in $retryDelaySeconds seconds...');
         await Future.delayed(Duration(seconds: retryDelaySeconds));
         retryDelaySeconds *= 2; // Exponential backoff
       } else {
-        print('Max retry attempts reached.');
+      //  print('Max retry attempts reached.');
         break;
       }
     }
@@ -680,9 +678,9 @@ class ChatRepository {
 
   Future<void> updateMessage(String messageId, String updatedMessage) async {
     try {
-      print('updating m');
+    //  print('updating kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk$messageId');
       //change this
-      final updateUri = Uri.parse('$apiUrl/message/updatemessagetext');
+      final updateUri = Uri.parse('$apiUrl/messager/updatemessagetext');
       final response = await http.put(
         updateUri,
         headers: {'Content-Type': 'application/json'},
@@ -691,14 +689,14 @@ class ChatRepository {
           'message': updatedMessage,
         }),
       );
-      print("status code ${response.statusCode}");
+     // print("status code ${response.statusCode}");
       if (response.statusCode == 200) {
-        print("Message updated to $updatedMessage. ");
+      //  print("Message updated to $updatedMessage. ");
       } else {
         //print(  "Failed to update message status. Status code: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error updating message status: $e");
+     // print("Error updating message status: $e");
     }
   }
 
@@ -769,27 +767,26 @@ class ChatRepository {
                 // Process the queued status messages
                 await processStatusQueue(statusQueue, inboxIds, userId);
               } catch (e) {
-                print("Error decoding status message: $e");
-                print("Problematic status message: $dataJson");
+               // print("Error decoding status message: $e");
+               // print("Problematic status message: $dataJson");
               }
             }
           }
         } else {
-          print(
-              'Error in SSE connection. Status code: ${streamedResponse.statusCode}');
+          //print('Error in SSE connection. Status code: ${streamedResponse.statusCode}');
         }
       } catch (e) {
-        print('Error while connecting to SSE: $e');
+       // print('Error while connecting to SSE: $e');
       }
 
       // Retry logic with exponential backoff
       retryAttempts++;
       if (retryAttempts < maxRetryAttempts) {
-        print('Retrying SSE connection in $retryDelaySeconds seconds...');
+      //  print('Retrying SSE connection in $retryDelaySeconds seconds...');
         await Future.delayed(Duration(seconds: retryDelaySeconds));
         retryDelaySeconds *= 2; // Exponential backoff
       } else {
-        print('Max retry attempts reached.');
+      //  print('Max retry attempts reached.');
         break;
       }
     }
@@ -813,17 +810,16 @@ class ChatRepository {
             message, inboxIds, userId); // Make sure it's async if needed
 
         // Debugging message removal and queue length
-        print(
-            "Message processed and removed from queue. Queue length: ${statusQueue.length}");
+      // print("Message processed and removed from queue. Queue length: ${statusQueue.length}");
       } catch (e) {
         // Error handling: If an error occurs while processing a message, log it
-        print("Error processing message: $e. Message: $message");
+       // print("Error processing message: $e. Message: $message");
         // You could decide to re-add the message to the queue for later retry or handle the error as appropriate
       }
     }
 
     // Once the queue is empty, notify that no more status events remain
-    print("No more status in the queue.");
+   // print("No more status in the queue.");
   }
 
   void handleSseStatus(Map<String, dynamic> message,
@@ -838,12 +834,11 @@ class ChatRepository {
 
       String newStatus =
           message['status'].toString(); // Ensure newStatus is a string
-      print("");
+    //  print("");
       if (activeInboxIds.contains(inboxId)) {
         //print("Message belongs to an active inbox.");
 
-        print(
-            'updating status in local database id $messageId, new status $newStatus');
+        //print('updating status in local database id $messageId, new status $newStatus');
 
         // Update the status in the local database
         await LocalDatabase.updateMessageStatus(messageId, newStatus);
@@ -854,10 +849,10 @@ class ChatRepository {
         // Update the last message cache (if needed)
         _updateLastMessageCache(inboxId, message);
       } else {
-        print("Message does not belong to any active inbox.");
+       // print("Message does not belong to any active inbox.");
       }
     } catch (e) {
-      print("Error handling SSE message: $e");
+      //print("Error handling SSE message: $e");
     }
   }
 
@@ -884,6 +879,7 @@ class ChatRepository {
 
         if (streamedResponse.statusCode == 200 ||
             streamedResponse.statusCode == 201) {
+          //print("connection initialised");
           final eventStream = streamedResponse.stream;
 
           // Listen for incoming events
@@ -922,55 +918,45 @@ class ChatRepository {
 
                     // Process the queued posts
                     //await processPostQueue(postQueue, userId, onNewPost);
-                    
-                await processPostQueue(businessQueue, inboxIds, userId, onNewBusiness);
+
+                    await processBusinessQueue(
+                        businessQueue, inboxIds, userId, onNewBusiness);
                   } else {
-                    print("Invalid business structure: Missing required keys.");
+                //    print("Invalid business structure: Missing required keys.");
                   }
                 } else {
-                  print("Invalid business message structure.");
+              //    print("Invalid business message structure.");
                 }
               } catch (e) {
-                print("Error decoding business data: $e");
-                print("Problematic business data: $dataJson");
+                //print("Error decoding business data: $e");
+              //  print("Problematic business data: $dataJson");
               }
             }
           }
         } else {
-          print('Failed to establish Business SSE connection. Retrying...');
+         // print('Failed to establish Business SSE connection. Retrying...');
         }
       } catch (e) {
-        print('Error while connecting to business SSE: $e');
+       // print('Error while connecting to business SSE: $e');
       }
 
       // Retry logic with exponential backoff
       retryAttempts++;
       if (retryAttempts < maxRetryAttempts) {
-        print('Retrying SSE connection in $retryDelaySeconds seconds...');
+       // print('Retrying SSE connection in $retryDelaySeconds seconds...');
         await Future.delayed(Duration(seconds: retryDelaySeconds));
         retryDelaySeconds *= 2; // Exponential backoff
       } else {
-        print('Max retry attempts reached.');
+      //  print('Max retry attempts reached.');
         break;
       }
     }
   }
 
-
-  void handleSseBusiness(Map<String, dynamic> business, String currentUserId) async {
+  void handleSseBusiness(
+      Map<String, dynamic> business, String currentUserId) async {
     try {
-      // Fetch user information (first name, last name, profile photo) for the sender
-      List<dynamic> users =
-          await ChatRepository.fetchUsersToMemory(currentUserId);
-      Map<String, dynamic>? sender = users.firstWhere(
-          (user) => user['userid'].toString() == business['user_id'].toString(),
-          orElse: () => null);
-
-      // If sender is unknown, do not show notification
-      if (sender == null) {
-        //print("Sender is unknown, not showing notification.");
-        return;
-      }
+      //
 
       // If the business is from the current user, do not show a notification
       //will change the userid to user_id letter
@@ -978,42 +964,26 @@ class ChatRepository {
         //print("Sender is the current user, not showing notification.");
       } else {
         // If the message is not from the current user, show the notification
-        String senderName = '${sender['firstname']} ${sender['lastname']}';
-        String senderProfilePhoto = sender != null &&
-                sender['profilepicture'] != null &&
-                sender['profilepicture'] != ''
-            ? '${sender['profilepicture']}'
-            : 'default_profile_photo_url'; // Provide a default URL if not available
+        String senderName = "Business";
+        String senderProfilePhoto = business['photo_url'];
 
         // Generate a unique notification ID (based on time)
         String notificationId =
             (DateTime.now().millisecondsSinceEpoch % 2147483647).toString();
 
-        // Show the notification with profile image and dynamic ID
-        //print("Showing notification: $senderName - ${post['description']}");
-        /*await PostNotificationsService.showNotification(
-          senderName, // Title
-          post['description'] ?? 'No post desription content', // Body
-          senderProfilePhoto, // Profile photo URL
-          post['userid'].toString(), // User ID
-          notificationId, // Notification ID (this is the dynamic ID)
-          currentUserId, // Current User ID
-          sender['firstname'] ?? 'First Name', // Sender's First Name
-          sender['lastname'] ?? 'Last Name', // Sender's Last Name
-          "1",
-        );*/
-        await BusinessNotificationsService  .showNotification(
-          'New Post Title', // Title
+       // print("kkkkkkkkkkkkkkkkkkkkkkkkk $business");
+        await BusinessNotificationsService.showNotification(
+          'Business Around Campus', // Title
           business['description'], // Body
           business['photo_url'], // Photo URL
-          business['post_id'].toString(), // Post ID
+          business['business_id'].toString(),
           business['user_id'].toString(), // User ID
           senderName,
           senderProfilePhoto,
           business['created_at'], // Created At (use appropriate format)
         );
 
-        //print("Notification sent: $senderName - ${post['descripyion']}");
+       // print("Notification sent: $senderName - ${business['description']}");
       }
     } catch (e) {
       //print("Error handling SSE post: $e");
@@ -1031,10 +1001,9 @@ class ChatRepository {
       Map<String, dynamic> message = businessQueue.first;
       //print("Processing message: $message");
 
-
       // Call handleSseMessage here, passing the message and other required parameters
-      //print("Calling handleSseMessage...");
-      handleSseBusiness(message,userId);
+     // print("Calling handlebusinnes...");
+      handleSseBusiness(message, userId);
 
       // Remove the processed message from the queue
       businessQueue.removeFirst();
@@ -1044,12 +1013,66 @@ class ChatRepository {
       //print("Checking if more messages are in the queue...");
       if (businessQueue.isNotEmpty) {
         //print( "There are more messages in the queue. Processing next message...");
-        await processBusinessQueue(businessQueue, inboxIds, userId, onNewBusiness);
+        await processBusinessQueue(
+            businessQueue, inboxIds, userId, onNewBusiness);
       } else {
         //print("No more messages in the queue.");
       }
     } else {
       //print("Queue is empty, no message to process.");
+    }
+  }
+
+  
+  Future<void> block(int inboxId, int blocker) async {
+    try {
+      //print('updating kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk$messageId');
+      //change this
+      final updateUri = Uri.parse('$apiUrl/inbox/block');
+      final response = await http.put(
+        updateUri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'inboxid': inboxId,
+          'blocker': blocker,
+        }),
+      );
+     // print("status code ${response.statusCode}");
+      if (response.statusCode == 200) {
+
+        
+        
+     //   print("blocked. ");
+      } else {
+        //print(  "Failed to update message status. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+     // print("Error updating message status: $e");
+    }
+  }
+
+  
+  Future<void> unblock(int inboxId,int blocker) async {
+    try {
+      //print('updating kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk$messageId');
+      //change this
+      final updateUri = Uri.parse('$apiUrl/inbox/unblock');
+      final response = await http.put(
+        updateUri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'inboxid': inboxId,
+          'blocker': blocker,
+        }),
+      );
+     // print("status code ${response.statusCode}");
+      if (response.statusCode == 200) {
+       // print("unblock ");
+      } else {
+        //print(  "Failed to update message status. Status code: ${response.statusCode}");
+      }
+    } catch (e) {
+     // print("Error updating message status: $e");
     }
   }
 }

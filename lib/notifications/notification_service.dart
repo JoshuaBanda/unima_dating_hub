@@ -214,7 +214,7 @@ class NotificationService {
       );
       //print("Scheduled notification successfully.");
     } catch (e) {
-      print("Error scheduling notification: $e");
+    //  print("Error scheduling notification: $e");
     }
   }
 }

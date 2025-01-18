@@ -31,6 +31,7 @@ class Chills extends StatefulWidget {
 class _ChillsState extends State<Chills> {
   late ChatRepository chatRepository;
   late IO.Socket socket;
+  final TextEditingController _editMessageController = TextEditingController();
 
   late Future<Map<String, dynamic>> thisChatInboxFuture;
   late Future<List<dynamic>> messagesFuture;
@@ -59,23 +60,23 @@ class _ChillsState extends State<Chills> {
 
     socket.connect();
     socket.on('connect', (_) {
-      print('Socket connected: ${socket.id}');
+      //print('Socket connected: ${socket.id}');
     });
 
     socket.on('disconnect', (_) {
-      print('Socket disconnected');
+      //print('Socket disconnected');
     });
 
     socket.on('connect_error', (error) {
-      print('Socket connection error: $error');
+      //print('Socket connection error: $error');
     });
 
     socket.on('refresh', (data) {
-      print('Received refresh data: $data');
+//print('Received refresh data: $data');
       setState(() {
         if (data['data']['inboxid'] == inboxId &&
             data['data']['userid'] != widget.myUserId) {
-          print('Inserting message into currentMessages');
+          //print('Inserting message into currentMessages');
           currentMessages.add(data['data']); // Add new message at the bottom
           _sortMessagesByDate(); // Ensure messages are sorted after adding
           _scrollToBottom(); // Scroll to bottom after receiving new message
@@ -90,20 +91,20 @@ class _ChillsState extends State<Chills> {
     try {
       await audioPlayer.play(AssetSource(soundPath));
     } catch (e) {
-      print('Error playing sound: $e');
+     // print('Error playing sound: $e');
     }
   }
 
   Future<Map<String, dynamic>> _fetchCommonInboxData() async {
     try {
-      print('Fetching inbox data...');
+      //print('Fetching inbox data...');
       inboxId = widget.inboxid.toString();
       messagesFuture = chatRepository.fetchMessages(inboxId);
-      print("message $messagesFuture");
+      //print("message $messagesFuture");
 
       return {'inboxid': inboxId}; // Return a map with inboxId
     } catch (e) {
-      print('Error fetching inbox data: $e');
+      //print('Error fetching inbox data: $e');
       throw Exception('Error fetching inbox data: $e');
     }
   }
@@ -111,7 +112,8 @@ class _ChillsState extends State<Chills> {
   Future<void> _sendMessage(String messageText) async {
     if (messageText.isEmpty || isSending) return;
 
-    String messageId = DateTime.now().millisecondsSinceEpoch.toString(); // Unique message ID
+    String messageId =
+        DateTime.now().millisecondsSinceEpoch.toString(); // Unique message ID
 
     setState(() {
       isSending = true;
@@ -123,13 +125,15 @@ class _ChillsState extends State<Chills> {
         'status': 'sent'
       };
       currentMessages.add(message); // Add the new message at the bottom
-      sendingStatus[messageId] = false; // Initially mark the message as not sent
+      sendingStatus[messageId] =
+          false; // Initially mark the message as not sent
     });
 
     try {
-      print('Sending message: $messageText');
-      await chatRepository.sendMessage(inboxId, widget.myUserId, messageText, 'sent');
-      print('Message sent successfully');
+      //print('Sending message: $messageText');
+      await chatRepository.sendMessage(
+          inboxId, widget.myUserId, messageText, 'sent');
+      //print('Message sent successfully');
 
       socket.emit('triggerRefresh', {
         'inboxid': inboxId,
@@ -144,8 +148,9 @@ class _ChillsState extends State<Chills> {
 
       _playNotificationSound('sounds/message_sent.mp3');
     } catch (error) {
-      print('Error sending message: $error');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      //print('Error sending message: $error');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       setState(() {
         isSending = false;
@@ -166,7 +171,8 @@ class _ChillsState extends State<Chills> {
   void _scrollToBottom() {
     Future.delayed(Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent); // Scroll to the bottom of the list
+        _scrollController.jumpTo(_scrollController
+            .position.maxScrollExtent); // Scroll to the bottom of the list
       }
     });
   }
@@ -207,140 +213,167 @@ class _ChillsState extends State<Chills> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-  title: Text(
-    'Message Options',
-    style: TextStyle(
-      fontSize: 18.0,
-      fontWeight: FontWeight.bold,
-      color: Colors.black,
-    ),
-  ),
-  content: Padding(
-    padding: const EdgeInsets.all(8.0),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TextButton.icon(
-          onPressed: () {
-            Navigator.pop(context);
-            _editMessage(message);
-          },
-          icon: Icon(
-            Icons.edit,
-            color: Colors.blue,
-          ),
-          label: Text(
-            'Edit',
-            style: TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.bold,
-            ),
+        title: Text(
+          'Message Options',
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        Divider(), // Divider to separate options
-        TextButton.icon(
-          onPressed: () {
-            Navigator.pop(context);
-            _deleteMessage(message);
-          },
-          icon: Icon(
-            Icons.delete,
-            color: Colors.red,
-          ),
-          label: Text(
-            'Delete',
-            style: TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
+        content: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _editMessage(message);
+                },
+                icon: Icon(
+                  Icons.edit,
+                  color: Colors.blue,
+                ),
+                label: Text(
+                  'Edit',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Divider(), // Divider to separate options
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _deleteMessage(message);
+                },
+                icon: Icon(
+                  Icons.delete,
+                  color: Colors.red,
+                ),
+                label: Text(
+                  'Delete',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
-    ),
-  ),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(15.0),
-  ),
-  elevation: 5.0,
-),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        elevation: 5.0,
+      ),
     );
   }
 
   // Method to edit the message
   void _editMessage(Map<String, dynamic> message) {
-    _messageController.text = message['message'] ?? '';
+    _editMessageController.text =
+        message['message'] ?? ''; // Use the new controller
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-  title: Text(
-    'Edit Message',
-    style: TextStyle(
-      fontSize: 18.0,
-      fontWeight: FontWeight.bold,
-      color: Colors.black,
-    ),
-  ),
-  content: Padding(
-    padding: const EdgeInsets.all(8.0),
-    child: TextField(
-      controller: _messageController,
-      decoration: InputDecoration(
-        hintText: 'Edit your message...',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
+        title: Text(
+          'Edit Message',
+          style: TextStyle(
+            fontSize: 18.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue, width: 2.0),
-          borderRadius: BorderRadius.circular(12.0),
+        content: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _editMessageController, // Use the new controller
+            decoration: InputDecoration(
+              hintText: 'Edit your message...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.blue, width: 2.0),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            ),
+            style: TextStyle(fontSize: 16.0, color: Colors.black),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0),
-          borderRadius: BorderRadius.circular(12.0),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              String newMessage =
+                  _editMessageController.text; // Use the new controller
+              if (newMessage.isNotEmpty) {
+                _updateMessage(message, newMessage);
+              }
+            },
+            child: Text(
+              'Save',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
         ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        elevation: 5.0,
       ),
-      style: TextStyle(fontSize: 16.0, color: Colors.black),
-    ),
-  ),
-  actions: [
-    TextButton(
-      onPressed: () {
-        Navigator.pop(context);
-        String newMessage = _messageController.text;
-        if (newMessage.isNotEmpty) {
-          _updateMessage(message, newMessage);
-        }
-      },
-      child: Text(
-        'Save',
-        style: TextStyle(
-          color: Colors.blue,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  ],
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(15.0),
-  ),
-  elevation: 5.0,
-)
-
     );
   }
 
+  void _showSuccessBlock(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.green,
+    ),
+  );
+}
+
+  void _showSuccessUnBlock(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.black,
+    ),
+  );
+}
+
+
   // Update the message locally and remotely
-  Future<void> _updateMessage(Map<String, dynamic> message, String newMessage) async {
+  Future<void> _updateMessage(
+      Map<String, dynamic> message, String newMessage) async {
     setState(() {
       message['message'] = newMessage;
     });
 
     try {
       await chatRepository.updateMessage(message['messageId'], newMessage);
-      socket.emit('triggerRefresh', {'inboxid': inboxId, 'userid': widget.myUserId, 'message': newMessage});
+      socket.emit('triggerRefresh', {
+        'inboxid': inboxId,
+        'userid': widget.myUserId,
+        'message': newMessage
+      });
     } catch (error) {
-      print('Error updating message: $error');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error updating message')));
+      //print('Error updating message: $error');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error updating message')));
     }
   }
 
@@ -352,10 +385,15 @@ class _ChillsState extends State<Chills> {
 
     try {
       await chatRepository.deleteMessage(inboxId, message['messageId']);
-      socket.emit('triggerRefresh', {'inboxid': inboxId, 'userid': widget.myUserId, 'message': 'Message Deleted'});
+      socket.emit('triggerRefresh', {
+        'inboxid': inboxId,
+        'userid': widget.myUserId,
+        'message': 'Message Deleted'
+      });
     } catch (error) {
-      print('Error deleting message: $error');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting message')));
+      //print('Error deleting message: $error');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error deleting message')));
     }
   }
 
@@ -366,23 +404,25 @@ class _ChillsState extends State<Chills> {
     final isCurrentUser = message['userid'].toString() == widget.myUserId;
     String messageId = message['messageId'] ?? '';
     bool isSent = sendingStatus[messageId] ?? false;
+    final status = message['status'];
 
     return GestureDetector(
-      onDoubleTap: () => _onMessageDoubleTap(message), // Double tap to show options
+      //onDoubleTap: () => _onMessageDoubleTap(message), // Double tap to show options
       child: Align(
         alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           child: Column(
-            crossAxisAlignment:
-                isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: isCurrentUser
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               Container(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.5,
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
                 decoration: BoxDecoration(
                   gradient: isCurrentUser
                       ? LinearGradient(
@@ -459,6 +499,38 @@ class _ChillsState extends State<Chills> {
                     as ImageProvider,
           ),
           SizedBox(width: 10),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'block') {
+                // Handle block action
+                //print('Block selected $inboxId');
+                dynamic para1 = int.tryParse(inboxId);
+                dynamic para2 = int.tryParse(widget.myUserId);
+                chatRepository.block(para1, para2);
+                _showSuccessBlock('You blocked ${widget.firstName}');
+                
+              } else if (value == 'unblock') {
+                // Handle unblock action
+                //print('Unblock selected');
+                dynamic para1 = int.tryParse(inboxId);
+                dynamic para2 = int.tryParse(widget.myUserId);
+                chatRepository.unblock(para1, para2);
+
+                _showSuccessUnBlock('You un blocked ${widget.firstName}');
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'block',
+                child: Text('Block'),
+              ),
+              PopupMenuItem<String>(
+                value: 'unblock',
+                child: Text('Unblock'),
+              ),
+            ],
+            icon: Icon(Icons.more_vert), // More icon
+          ),
         ],
         backgroundColor: Colors.white, // Set the background color to white
         elevation: 5, // Adds a shadow effect under the AppBar
@@ -480,13 +552,15 @@ class _ChillsState extends State<Chills> {
           } else if (!snapshot.hasData || snapshot.data == null) {
             return const Center(child: Text('No inbox data found.'));
           } else {
-            final inboxData = snapshot.data!; 
+            final inboxData = snapshot.data!;
             inboxId = inboxData['inboxid'].toString();
 
             return FutureBuilder<List<dynamic>>(
               future: messagesFuture,
               builder: (context, messageSnapshot) {
-                if (messageSnapshot.connectionState == ConnectionState.waiting && currentMessages.isEmpty) {
+                if (messageSnapshot.connectionState ==
+                        ConnectionState.waiting &&
+                    currentMessages.isEmpty) {
                   return const Center(
                     child: SpinKitFadingCircle(color: Colors.grey, size: 50.0),
                   );
@@ -499,7 +573,8 @@ class _ChillsState extends State<Chills> {
                     _scrollToBottom(); // Scroll to bottom initially
                   }
 
-                  Map<String, List<dynamic>> groupedMessages = _groupMessagesByDate(currentMessages);
+                  Map<String, List<dynamic>> groupedMessages =
+                      _groupMessagesByDate(currentMessages);
 
                   return Column(
                     children: [
@@ -510,7 +585,8 @@ class _ChillsState extends State<Chills> {
                             return Column(
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8.0),
                                   child: Text(
                                     entry.key,
                                     style: TextStyle(
@@ -519,7 +595,10 @@ class _ChillsState extends State<Chills> {
                                         color: Colors.grey),
                                   ),
                                 ),
-                                ...entry.value.map((message) => _buildMessageWidget(message)).toList(),
+                                ...entry.value
+                                    .map((message) =>
+                                        _buildMessageWidget(message))
+                                    .toList(),
                               ],
                             );
                           }).toList(),
@@ -531,7 +610,8 @@ class _ChillsState extends State<Chills> {
                           children: [
                             Expanded(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
                                   color: Colors.grey[200],
                                   borderRadius: BorderRadius.circular(30),

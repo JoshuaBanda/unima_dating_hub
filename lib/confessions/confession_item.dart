@@ -10,6 +10,7 @@ import 'report_page.dart';
 import 'confession_photo_full_page.dart';
 import 'like_button.dart'; // Import the LikeButton widget
 import 'api_service.dart'; // Import the ApiService
+import 'package:google_fonts/google_fonts.dart';
 
 class ConfessionItem extends StatefulWidget {
   final Confession confession;
@@ -54,10 +55,10 @@ class _ConfessionItemState extends State<ConfessionItem> {
         likeCount = fetchedLikeCount;
         isLiked = fetchedIsLiked;
       });
-      print("like count $likeCount   is liked $isLiked");
+      //print("like count $likeCount   is liked $isLiked");
 
     } catch (e) {
-      print("Error fetching like data: $e");
+      //print("Error fetching like data: $e");
       _showErrorMessage("Failed to load like data. Please try again.");
     }
   }
@@ -249,7 +250,7 @@ class _ConfessionItemState extends State<ConfessionItem> {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.pink, const Color.fromARGB(174, 244, 67, 54)],
+                  colors: [const Color.fromARGB(246, 255, 255, 255), const Color.fromARGB(159, 255, 255, 255)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -258,9 +259,15 @@ class _ConfessionItemState extends State<ConfessionItem> {
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Text(
-                  widget.confession.description,
-                  style: const TextStyle(fontSize: 16, color: Colors.white),
-                ),
+  widget.confession.description,
+  style: GoogleFonts.indieFlower(
+    textStyle: TextStyle(
+      color: Colors.grey[1000],
+      fontSize: 24,
+    ),
+  ),
+),
+
               ),
             ),
           ),

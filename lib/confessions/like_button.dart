@@ -65,13 +65,13 @@ class _LikeButtonState extends State<LikeButton> {
         isLoading = false;  // Stop loading
       });
 
-      print("Like count: $likeCount, Is liked: $isLiked");
+      //print("Like count: $likeCount, Is liked: $isLiked");
 
     } catch (e) {
       setState(() {
         isLoading = false;  // Stop loading
       });
-      print("Error fetching like data: $e");
+      //print("Error fetching like data: $e");
       // Show error message to the user
       _showErrorSnackbar("Failed to load like data. Please try again.");
     }
@@ -137,32 +137,38 @@ class _LikeButtonState extends State<LikeButton> {
   @override
   Widget build(BuildContext context) {
     return Row(
+  mainAxisAlignment: MainAxisAlignment.center, // Align the items in the center
+  children: [
+    // Conditionally show the like count if it's greater than 0
+    if (likeCount > 0) 
+      Text(
+        '$likeCount', // Display the number of likes
+        style: TextStyle(
+          color: Colors.grey[700],
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    SizedBox(width: 5), // Add some space between the count and the icon
+    // Using a Stack to overlay the loading spinner on top of the button
+    Stack(
+      alignment: Alignment.center,
       children: [
-        // Using a Stack to overlay the loading spinner on top of the button
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              icon: Icon(
-                Icons.thumb_up,
-                color: isLiked ? Colors.redAccent : Colors.grey,
-              ),
-              onPressed: isLoading ? null : _toggleLike, // Disable button while loading
-            ),
-            if (isLoading)
-              Positioned.fill(
-                child: Center(child: SpinKitFadingCircle(
-                                        color: Colors.grey, size: 20.0)), // Show loading spinner
-              ),
-          ],
-        ),
-        Text(
-          '$likeCount', // Display the number of likes
-          style: TextStyle(
-            color: Colors.grey[700],
+        IconButton(
+          icon: Icon(
+            Icons.thumb_up,
+            color: isLiked ? Colors.redAccent : Colors.grey,
           ),
+          onPressed: isLoading ? null : _toggleLike, // Disable button while loading
         ),
+        if (isLoading)
+          Positioned.fill(
+            child: Center(child: SpinKitFadingCircle(
+                                    color: Colors.grey, size: 20.0)), // Show loading spinner
+          ),
       ],
-    );
+    ),
+  ],
+);
+
   }
 }

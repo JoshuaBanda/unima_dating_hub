@@ -30,10 +30,11 @@ class _PostListPageState extends State<PostListPage> {
   List<Post> allPosts = []; // List to hold all posts
 
   final List<String> _carouselImages = [
-    'assets/image1.jpg',
-    'assets/image7.jpg',
-    'assets/image3.jpg',
+    'assets/love2.jpg',
+    'assets/love5.jpg',
+    'assets/love3.jpg',
     'assets/image4.jpg',
+    'assets/love1.jpg'
   ];
 
   @override

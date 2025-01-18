@@ -405,6 +405,7 @@ Future<String?> _showEditDialog(String currentDescription) async {
                   currentUserId: widget.currentUserId,
                   currentEmail: widget.currentEmail,
                   jwtToken: widget.jwtToken,
+                  likeCount: likeCount,
                 ),
               ),
             );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:unima_dating_hub/notifications/business_notifications_service.dart';
 import 'home/landingpage.dart';
 import 'user_verification/Login_SignUp.dart';
 import 'home/home.dart';
@@ -7,28 +8,27 @@ import 'posts/post_list.dart';
 import 'users/user_characteristics/user_characteristics_page.dart';
 import '/users/user_characteristics/update_user_characteristics_page.dart';
 import 'notifications/notification_service.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize timezone data
-  tz_data.initializeTimeZones();  // Correct timezone initialization
+  tz_data.initializeTimeZones(); // Correct timezone initialization
 
   // Initialize notifications
-  await NotificationService.initialize();  // Initialize Notification Service
+  await NotificationService.initialize(); // Initialize Notification Service
+  await BusinessNotificationsService.initialize();
 
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: SplashScreen(),  // Start with Splash Screen
+    home: SplashScreen(), // Start with Splash Screen
   ));
 }
 
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
-  
 }
 
 class _SplashScreenState extends State<SplashScreen> {
@@ -48,9 +48,9 @@ class _SplashScreenState extends State<SplashScreen> {
       String? userId = await storage.read(key: 'userid');
 
       // For now, we use hardcoded values for firstName, lastName, profilePicture, and activationStatus
-      String firstName = 'John'; 
-      String lastName = 'Doe'; 
-      String profilePicture = ''; 
+      String firstName = 'John';
+      String lastName = 'Doe';
+      String profilePicture = '';
       bool activationStatus = true;
 
       Navigator.pushReplacement(

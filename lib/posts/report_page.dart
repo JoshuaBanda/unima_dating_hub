@@ -22,6 +22,7 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage> {
   final _reportController = TextEditingController();
   bool isSubmitting = false;
+  String? selectedReason; // To store the selected reason
 
   // Function to send the report to the backend
   Future<void> _sendReport() async {
@@ -29,7 +30,12 @@ class _ReportPageState extends State<ReportPage> {
       isSubmitting = true;
     });
 
-    String reportMessage = _reportController.text.trim();
+    // Combine the reason with the text from the text field
+    String reportMessage = '';
+    if (selectedReason != null) {
+      reportMessage += selectedReason!; // Add the reason from the dropdown
+    }
+    reportMessage += ' - ' + _reportController.text.trim(); // Add the additional reason
 
     if (reportMessage.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -42,7 +48,7 @@ class _ReportPageState extends State<ReportPage> {
     }
 
     try {
-      print("jwt tocken ${widget.jwtToken}");
+      //print("jwt token: ${widget.jwtToken}");
       final response = await http.post(
         Uri.parse(
             'https://datehubbackend.onrender.com/report/create'), // Replace with your actual API URL
@@ -58,26 +64,21 @@ class _ReportPageState extends State<ReportPage> {
         }),
       );
 
-      // Print the status code and response body to the console
-      //print("Response Status Code: ${response.statusCode}");
-      //print("Response Body: ${response.body}");
-
-      if (response.statusCode == 200||response.statusCode==201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Post has been reported successfully')),
         );
         Navigator.of(context).pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Failed to report the post. Please try again.')),
+          SnackBar(content: Text('Failed to report the post. Please try again.')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred. Please try again.')),
       );
-      print("Error occurred: $e"); // Print error details if exception occurs
+      //print("Error occurred: $e"); // Print error details if exception occurs
     } finally {
       setState(() {
         isSubmitting = false;
@@ -106,6 +107,7 @@ class _ReportPageState extends State<ReportPage> {
               SizedBox(height: 10),
               // Dropdown for selecting the reason for reporting
               DropdownButtonFormField<String>(
+                value: selectedReason,
                 items: [
                   'Nudity or Sexual Content',
                   'Hate Speech or Bullying',
@@ -119,7 +121,9 @@ class _ReportPageState extends State<ReportPage> {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  // Handle selection
+                  setState(() {
+                    selectedReason = value; // Store the selected reason
+                  });
                 },
                 decoration: InputDecoration(
                   labelText: 'Select Reason for Report',
@@ -150,8 +154,7 @@ class _ReportPageState extends State<ReportPage> {
               // Submit button
               isSubmitting
                   ? Center(
-                      child:
-                          CircularProgressIndicator()) // Show loading indicator while submitting
+                      child: CircularProgressIndicator()) // Show loading indicator while submitting
                   : ElevatedButton(
                       onPressed: _sendReport, // Submit the report
                       style: ElevatedButton.styleFrom(
